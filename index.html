@@ -94,7 +94,10 @@
 
             <!-- 統計画面 -->
             <div id="view-stats" class="hidden p-4 space-y-4">
-                <h2 class="text-xl font-black italic">成績統計</h2>
+                <div class="flex justify-between items-end">
+                    <h2 class="text-xl font-black italic">成績統計</h2>
+                    <span class="text-[9px] font-bold text-slate-400 italic">グラフ：場代除損益推移</span>
+                </div>
                 <div class="bg-white border rounded-3xl p-4 shadow-sm"><canvas id="trendChart" height="180"></canvas></div>
                 <div class="tabs-container no-scrollbar flex gap-2 overflow-x-auto pb-2" id="stats-tabs"></div>
                 <div id="player-stats-list" class="space-y-3"></div>
@@ -301,12 +304,12 @@
                     h.players.forEach(p => {
                         if (!stats[p.name]) stats[p.name] = { income:0, pts:0, pts_chip:0, games:0, r1:0, r2:0, r4:0, rSum:0 };
                         const s = stats[p.name];
-                        // 収支（場代除）は p.income に (h.fee / h.playerCount) を足し戻す
-                        s.income += (p.income + (h.fee / h.playerCount));
+                        // 収支（場代除）: p.income は場代引いた後のため、(h.fee / h.playerCount) を加算
+                        const incomeBeforeFee = p.income + (h.fee / h.playerCount);
+                        s.income += incomeBeforeFee;
                         p.scores.forEach((sc, idx) => {
                             s.games++;
                             s.pts += sc;
-                            // チップ分をpt換算: (チップ枚数 * チップレート) / スコアレート
                             const chipPt = (p.chip || 0) * (h.chipRate / h.rate) / p.scores.length;
                             s.pts_chip += sc + chipPt;
                             
@@ -351,15 +354,33 @@
                 const ctx = document.getElementById('trendChart').getContext('2d');
                 if (this.trendChart) this.trendChart.destroy();
                 const datasets = this.db.members.map((m, i) => {
-                    let bal = 0;
+                    let balBeforeFee = 0;
                     const data = [0, ...this.db.history.slice().reverse().map(h => {
                         const p = h.players.find(pl => pl.name === m.name);
-                        bal += p ? p.income : 0;
-                        return bal;
+                        // グラフ推移を「場代なし（純粋な損益）」にするため、場代分を足し戻す
+                        if (p) {
+                            const incomeBeforeFee = p.income + (h.fee / h.playerCount);
+                            balBeforeFee += incomeBeforeFee;
+                        }
+                        return balBeforeFee;
                     })];
-                    return { label: m.name, data, borderColor: this.colors[i % this.colors.length], tension: 0.3, pointRadius: 0 };
+                    return { 
+                        label: m.name, 
+                        data, 
+                        borderColor: this.colors[i % this.colors.length], 
+                        borderWidth: 3,
+                        tension: 0.3, 
+                        pointRadius: 0 
+                    };
                 });
-                this.trendChart = new Chart(ctx, { type: 'line', data: { labels: Array(datasets[0]?.data.length || 0).fill(''), datasets }, options: { plugins: { legend: { display: false } }, scales: { x: { display: false } } } });
+                this.trendChart = new Chart(ctx, { 
+                    type: 'line', 
+                    data: { labels: Array(datasets[0]?.data.length || 0).fill(''), datasets }, 
+                    options: { 
+                        plugins: { legend: { display: false } }, 
+                        scales: { x: { display: false }, y: { grid: { color: '#f1f5f9' } } } 
+                    } 
+                });
             },
 
             runAnalysis() {
@@ -375,7 +396,10 @@
                             if (opp.name === target || !this.selectedAnalysisMembers.includes(opp.name)) return;
                             if (!stats[opp.name]) stats[opp.name] = { games: 0, win: 0, diff: 0 };
                             stats[opp.name].games += pTarget.scores.length;
-                            stats[opp.name].diff += (pTarget.income - opp.income);
+                            // 相性分析も場代抜きで比較（純粋な力の差を算出）
+                            const targetIncomeBeforeFee = pTarget.income + (h.fee / h.playerCount);
+                            const oppIncomeBeforeFee = opp.income + (h.fee / h.playerCount);
+                            stats[opp.name].diff += (targetIncomeBeforeFee - oppIncomeBeforeFee);
                             pTarget.scores.forEach((ts, idx) => { if (ts > opp.scores[idx]) stats[opp.name].win++; });
                         });
                     });
@@ -412,6 +436,7 @@
                     const s = this.db.currentSet;
                     s.players.forEach(p => {
                         const pts = p.scores.reduce((a,b)=>a+b,0);
+                        // p.income は最終的な収支（場代込）として計算し保存
                         p.income = (pts * s.rate) + ((p.chip||0) * s.chipRate) - (s.fee / s.playerCount);
                     });
                     this.db.history.unshift(JSON.parse(JSON.stringify(s)));
