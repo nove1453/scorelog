@@ -30,7 +30,7 @@
         .member-sel.selected { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; }
 
         /* Share Card Styles (画像生成用) */
-        #share-card-container { position: absolute; left: -9999px; top: 0; width: 375px; background: #0f172a; color: white; padding: 24px; }
+        #share-card-container { position: absolute; left: -9999px; top: -9999px; width: 375px; background: #0f172a; color: white; padding: 24px; z-index: -100; pointer-events: none; }
         .rank-1-bg { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); }
         .rank-last-bg { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; }
         .rank-mid-bg { background: #1e293b; }
@@ -321,9 +321,16 @@
                 document.getElementById('fee-val').innerText = s.fee || 0;
             },
 
-            // 画像生成機能
-            generateShareImage() {
+            // 改良版画像生成機能
+            async generateShareImage() {
+                if (typeof html2canvas === 'undefined') {
+                    alert("画像生成ライブラリの準備ができていません。少し待ってから再度お試しください。");
+                    return;
+                }
+
                 const s = this.viewingRecord; if (!s) return;
+                
+                // データのセット
                 document.getElementById('share-date').innerText = new Date(s.date).toLocaleDateString().replace(/\//g, '.');
                 document.getElementById('share-info').innerText = `${s.players.length} PLAYERS / ${s.players[0].scores.length} SESSIONS`;
                 
@@ -354,12 +361,38 @@
                     body.innerHTML += `<tr class="border-b border-slate-700/50"><td class="py-2 font-bold">${p.name}</td><td class="text-right font-mono">${p.scores.reduce((a,b)=>a+b,0).toFixed(1)}</td><td class="text-right font-mono">${p.chip||0}</td><td class="text-right font-bold ${p.income>=0?'text-emerald-400':'text-rose-400'}">${Math.round(p.income).toLocaleString()}</td></tr>`;
                 });
 
-                html2canvas(document.getElementById('share-card-container'), { scale: 2, backgroundColor: '#0f172a' }).then(canvas => {
+                // 生成処理
+                try {
+                    // 一時的に表示させてレンダリングを安定させる
+                    const container = document.getElementById('share-card-container');
+                    container.style.position = 'fixed';
+                    container.style.left = '0';
+                    container.style.top = '0';
+                    container.style.zIndex = '9999';
+
+                    const canvas = await html2canvas(container, {
+                        scale: 2,
+                        backgroundColor: '#0f172a',
+                        useCORS: true,
+                        logging: false
+                    });
+
+                    // 元に戻す
+                    container.style.position = 'absolute';
+                    container.style.left = '-9999px';
+                    container.style.top = '-9999px';
+                    container.style.zIndex = '-100';
+
                     const link = document.createElement('a');
                     link.download = `Mahjong_Result_${Date.now()}.png`;
-                    link.href = canvas.toDataURL();
+                    link.href = canvas.toDataURL("image/png");
+                    document.body.appendChild(link);
                     link.click();
-                });
+                    document.body.removeChild(link);
+                } catch (error) {
+                    console.error("Image generation failed:", error);
+                    alert("画像の生成中にエラーが発生しました。");
+                }
             },
 
             getComment(p, rank, total) {
@@ -515,7 +548,7 @@
                     const s = this.db.currentSet;
                     s.players.forEach(p => {
                         const pts = p.scores.reduce((a,b)=>a+b,0);
-                        p.income = (pts * s.rate) + ((p.chip||0) * s.chipRate) - (s.fee / s.playerCount);
+                        p.income = (pts * s.rate) + ((p.chip||0) * s.rate_chip) - (s.fee / s.playerCount); // rate_chipに修正（もしあれば）
                     });
                     this.db.history.unshift(JSON.parse(JSON.stringify(s)));
                     this.db.currentSet = null; this.save(); this.setTab('history');
