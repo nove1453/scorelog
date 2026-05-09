@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ScoreLog Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overscroll-behavior: none;
+        }
+        .score-table th, .score-table td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 4px;
+            text-align: center;
+        }
+        .score-table th {
+            background-color: #f1f5f9;
+            font-size: 0.7rem;
+            font-weight: 800;
+        }
+        .score-table input {
+            width: 100%;
+            text-align: center;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+        }
+        .negative { color: #ef4444; font-weight: bold; }
+        .positive { color: #10b981; font-weight: bold; }
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 5;
+        }
+        .member-sel.selected {
+            background-color: #10b981 !important;
+            color: white !important;
+            border-color: #059669 !important;
+        }
+        .row-error { background-color: #fff1f2 !important; }
+        .row-error input { color: #ef4444; font-weight: bold; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 flex flex-col min-h-screen">
+
+    <div id="app" class="max-w-md mx-auto flex-1 flex flex-col bg-white shadow-xl relative overflow-hidden">
+        
+        <!-- Header -->
+        <header class="p-4 bg-white border-b flex justify-between items-center shrink-0 z-40">
+            <div class="flex items-center gap-2">
+                <i data-lucide="sparkles" class="text-emerald-500"></i>
+                <h1 class="text-lg font-black tracking-tighter italic uppercase">ScoreLog Pro</h1>
+            </div>
+            <div class="flex gap-2">
+                <button id="header-settings" onclick="app.showEditSetModal()" class="hidden p-2 text-slate-400">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </button>
+                <button onclick="app.showNewSetModal()" class="bg-emerald-500 text-white p-2 rounded-full shadow-lg">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto no-scrollbar pb-24">
+            <!-- VIEW: WELCOME -->
+            <div id="view-welcome" class="flex flex-col items-center justify-center py-20 px-10 text-center space-y-6">
+                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center">
+                    <i data-lucide="spade" class="w-10 h-10"></i>
+                </div>
+                <h2 class="text-2xl font-black italic">ARE YOU READY?</h2>
+                <button onclick="app.showNewSetModal()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg">対局を開始する</button>
+            </div>
+
+            <!-- VIEW: INPUT -->
+            <div id="view-input" class="hidden">
+                <div id="validation-msg" class="bg-rose-50 border-b border-rose-100 p-2 text-[10px] text-rose-700 font-bold hidden flex items-center gap-1">
+                    <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                    <span>各行の合計を 0 にしてください</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full score-table border-collapse table-fixed min-w-[320px]">
+                        <thead><tr id="player-headers"><th class="w-10 sticky-col italic">NO</th></tr></thead>
+                        <tbody id="score-rows"></tbody>
+                        <tfoot class="text-sm">
+                            <tr class="bg-slate-50 font-bold">
+                                <td class="sticky-col">合計</td>
+                                <td id="total-0">0</td><td id="total-1">0</td><td id="total-2">0</td><td id="total-3" class="hidden-3p">0</td>
+                            </tr>
+                            <tr class="text-[10px] text-slate-400 font-bold italic">
+                                <td class="sticky-col">チップ</td>
+                                <td><input type="number" id="chip-0" oninput="app.calcAll()" placeholder="0"></td>
+                                <td><input type="number" id="chip-1" oninput="app.calcAll()" placeholder="0"></td>
+                                <td><input type="number" id="chip-2" oninput="app.calcAll()" placeholder="0"></td>
+                                <td class="hidden-3p"><input type="number" id="chip-3" oninput="app.calcAll()" placeholder="0"></td>
+                            </tr>
+                            <tr class="text-[10px] text-slate-400 font-bold italic">
+                                <td class="sticky-col">場代等</td>
+                                <td id="fee-container" colspan="4" class="p-0">
+                                    <input type="number" id="manual-fee" oninput="app.calcAll()" placeholder="支払い合計を入力" class="w-full py-2">
+                                </td>
+                            </tr>
+                            <tr class="bg-slate-900 text-white font-black italic">
+                                <td class="sticky-col bg-slate-900">収支</td>
+                                <td id="income-0">0</td><td id="income-1">0</td><td id="income-2">0</td><td id="income-3" class="hidden-3p">0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="p-4 space-y-3">
+                    <button onclick="app.addRow()" class="w-full py-3 bg-slate-100 rounded-xl text-slate-600 font-bold flex items-center justify-center gap-2">
+                        <i data-lucide="list-plus" class="w-4 h-4"></i> 半荘を追加
+                    </button>
+                    <div class="pt-2 space-y-2">
+                        <button id="save-set-btn" onclick="app.saveCurrentSet()" 
+                                class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl disabled:opacity-20 transition-all" disabled>
+                            対局を保存して終了
+                        </button>
+                        <button id="force-save-btn" onclick="app.forceSaveCurrentSet()" 
+                                class="w-full py-2 bg-amber-50 text-amber-700 text-[10px] rounded-xl font-bold border border-amber-200 hidden uppercase tracking-widest">
+                            FORCE SAVE
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: MEMBERS -->
+            <div id="view-members" class="hidden p-4 space-y-4">
+                <div class="flex justify-between items-center"><h2 class="text-xl font-black italic uppercase">MEMBERS</h2><button onclick="app.addMemberPrompt()" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full">+ ADD</button></div>
+                <div id="member-list" class="space-y-2"></div>
+                <p class="text-[10px] text-slate-400 text-center font-bold">名前をタップして編集できます</p>
+            </div>
+
+            <!-- VIEW: STATS -->
+            <div id="view-stats" class="hidden p-4 space-y-4">
+                <h2 class="text-xl font-black italic uppercase">STATISTICS</h2>
+                <div class="bg-white border rounded-2xl p-2 shadow-sm"><canvas id="trendChart"></canvas></div>
+                <div id="player-stats-list" class="space-y-2"></div>
+            </div>
+
+            <!-- VIEW: HISTORY -->
+            <div id="view-history" class="hidden p-4 space-y-4">
+                <h2 class="text-xl font-black italic uppercase">ARCHIVE</h2>
+                <div id="history-list" class="space-y-3"></div>
+            </div>
+        </main>
+
+        <!-- Nav -->
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t flex justify-around items-center h-16 pb-safe z-30">
+            <button onclick="app.setTab('input')" id="nav-input" class="flex flex-col items-center gap-1 text-slate-400">
+                <i data-lucide="edit-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">PLAY</span>
+            </button>
+            <button onclick="app.setTab('members')" id="nav-members" class="flex flex-col items-center gap-1 text-slate-400">
+                <i data-lucide="users" class="w-5 h-5"></i><span class="text-[10px] font-bold">USERS</span>
+            </button>
+            <button onclick="app.setTab('stats')" id="nav-stats" class="flex flex-col items-center gap-1 text-slate-400">
+                <i data-lucide="bar-chart-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">STATS</span>
+            </button>
+            <button onclick="app.setTab('history')" id="nav-history" class="flex flex-col items-center gap-1 text-slate-400">
+                <i data-lucide="archive" class="w-5 h-5"></i><span class="text-[10px] font-bold">LOG</span>
+            </button>
+        </nav>
+
+        <!-- SETUP MODAL -->
+        <div id="modal-new-set" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
+            <div class="bg-white w-full rounded-3xl p-6 space-y-5 max-h-[90vh] flex flex-col shadow-2xl">
+                <h3 id="modal-title" class="text-xl font-black text-center italic uppercase">Game Setup</h3>
+                <div class="space-y-4 flex-1 overflow-y-auto no-scrollbar">
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="setup-count" class="bg-slate-100 rounded-xl p-3 text-sm font-bold appearance-none" onchange="app.refreshMemberSelectUI()">
+                            <option value="4">4人打ち</option><option value="3">3人打ち</option>
+                        </select>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">RATE</span>
+                            <input type="number" id="setup-rate" class="w-full bg-slate-100 rounded-xl p-3 pl-12 text-sm font-bold" value="50">
+                        </div>
+                    </div>
+                    <div id="member-select-grid" class="grid grid-cols-2 gap-2"></div>
+                </div>
+                <button id="modal-start-btn" onclick="app.startSet()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg">START GAME</button>
+                <button onclick="app.closeModal('modal-new-set')" class="w-full text-slate-400 text-xs font-bold uppercase tracking-widest">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            db: { members: [], history: [], currentSet: null },
+            chart: null,
+
+            init() {
+                const saved = localStorage.getItem('scorelog_v7');
+                if (saved) this.db = JSON.parse(saved);
+                if (!this.db.members || this.db.members.length === 0) {
+                    this.db.members = [{id:1, name:'かなさ'}, {id:2, name:'しぶや'}, {id:3, name:'高石さん'}, {id:4, name:'たくろう'}];
+                }
+                this.setTab(this.db.currentSet ? 'input' : 'welcome');
+                lucide.createIcons();
+            },
+
+            save() { localStorage.setItem('scorelog_v7', JSON.stringify(this.db)); },
+
+            setTab(tab) {
+                ['input', 'members', 'stats', 'history', 'welcome'].forEach(v => {
+                    document.getElementById(`view-${v}`)?.classList.add('hidden');
+                });
+                ['input', 'members', 'stats', 'history'].forEach(n => {
+                    document.getElementById(`nav-${n}`)?.classList.replace('text-emerald-500', 'text-slate-400');
+                });
+                document.getElementById(`view-${tab}`)?.classList.remove('hidden');
+                document.getElementById(`nav-${tab}`)?.classList.replace('text-slate-400', 'text-emerald-500');
+
+                // 設定ボタンの表示制御
+                document.getElementById('header-settings').classList.toggle('hidden', tab !== 'input');
+
+                if (tab === 'input') this.renderInputTable();
+                if (tab === 'history') this.renderHistory();
+                if (tab === 'stats') this.renderStats();
+                if (tab === 'members') this.renderMembers();
+                lucide.createIcons();
+            },
+
+            showNewSetModal() {
+                document.getElementById('modal-title').innerText = "Game Setup";
+                document.getElementById('modal-start-btn').innerText = "START GAME";
+                document.getElementById('modal-start-btn').onclick = () => app.startSet();
+                document.getElementById('setup-count').disabled = false;
+                this.refreshMemberSelectUI();
+                document.getElementById('modal-new-set').classList.remove('hidden');
+            },
+
+            showEditSetModal() {
+                if (!this.db.currentSet) return;
+                document.getElementById('modal-title').innerText = "Edit Settings";
+                document.getElementById('modal-start-btn').innerText = "APPLY CHANGES";
+                document.getElementById('modal-start-btn').onclick = () => app.applySettingsChange();
+                
+                // 現在値を反映
+                document.getElementById('setup-count').value = this.db.currentSet.playerCount;
+                document.getElementById('setup-count').disabled = true; // 対局中の人数変更は不可
+                document.getElementById('setup-rate').value = this.db.currentSet.rate;
+                
+                // メンバー選択グリッドは非表示または無効化
+                document.getElementById('member-select-grid').innerHTML = '<p class="col-span-2 text-center text-xs text-slate-400 py-4 font-bold">対局中のメンバー変更はできません</p>';
+                document.getElementById('modal-new-set').classList.remove('hidden');
+            },
+
+            applySettingsChange() {
+                this.db.currentSet.rate = parseInt(document.getElementById('setup-rate').value) || 0;
+                this.save();
+                this.calcAll();
+                this.closeModal('modal-new-set');
+            },
+
+            refreshMemberSelectUI() {
+                const grid = document.getElementById('member-select-grid');
+                grid.innerHTML = '';
+                this.db.members.forEach(m => {
+                    const btn = document.createElement('button');
+                    btn.className = 'member-sel bg-slate-50 border border-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600 transition-all';
+                    btn.innerText = m.name;
+                    btn.onclick = () => btn.classList.toggle('selected');
+                    grid.appendChild(btn);
+                });
+            },
+
+            startSet() {
+                const selected = Array.from(document.querySelectorAll('.member-sel.selected'));
+                const count = parseInt(document.getElementById('setup-count').value);
+                if (selected.length !== count) return alert(`${count}名選んでください`);
+                this.db.currentSet = {
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    playerCount: count,
+                    rate: parseInt(document.getElementById('setup-rate').value) || 50,
+                    players: selected.map(s => ({ name: s.innerText, scores: [0], chip: 0, income: 0 })),
+                    fee: 0
+                };
+                this.save();
+                this.closeModal('modal-new-set');
+                this.setTab('input');
+            },
+
+            renderInputTable() {
+                const set = this.db.currentSet;
+                if (!set) return;
+                const head = document.getElementById('player-headers');
+                head.innerHTML = '<th class="w-10 sticky-col italic">NO</th>';
+                set.players.forEach(p => head.innerHTML += `<th class="truncate">${p.name}</th>`);
+                
+                const rows = document.getElementById('score-rows');
+                rows.innerHTML = '';
+                const rowCount = set.players[0].scores.length;
+                for (let i = 0; i < rowCount; i++) {
+                    const tr = document.createElement('tr');
+                    tr.id = `row-${i}`;
+                    let html = `<td class="sticky-col text-[10px] text-slate-300 font-black italic">${i+1}</td>`;
+                    set.players.forEach((p, pi) => {
+                        html += `<td><input type="number" step="0.1" value="${p.scores[i]}" oninput="app.updateScore(${i}, ${pi}, this.value)"></td>`;
+                    });
+                    tr.innerHTML = html;
+                    rows.appendChild(tr);
+                }
+                document.querySelectorAll('.hidden-3p').forEach(el => el.style.display = set.playerCount === 3 ? 'none' : '');
+                const feeCol = document.getElementById('fee-container');
+                if (feeCol) feeCol.colSpan = set.playerCount === 3 ? 3 : 4;
+
+                this.calcAll();
+            },
+
+            updateScore(ri, pi, v) {
+                this.db.currentSet.players[pi].scores[ri] = parseFloat(v) || 0;
+                this.calcAll();
+                this.save();
+            },
+
+            addRow() {
+                this.db.currentSet.players.forEach(p => p.scores.push(0));
+                this.renderInputTable();
+            },
+
+            calcAll() {
+                const set = this.db.currentSet;
+                if (!set) return;
+                let isAllValid = true;
+                const feeTotal = parseFloat(document.getElementById('manual-fee').value) || 0;
+                const feePer = feeTotal / set.playerCount;
+
+                for (let i = 0; i < set.players[0].scores.length; i++) {
+                    const rowSum = set.players.reduce((a, p) => a + (Number(p.scores[i]) || 0), 0);
+                    const rounded = Math.round(rowSum * 10) / 10;
+                    const rowEl = document.getElementById(`row-${i}`);
+                    if (Math.abs(rounded) > 0.1) { rowEl?.classList.add('row-error'); isAllValid = false; }
+                    else { rowEl?.classList.remove('row-error'); }
+                }
+
+                set.players.forEach((p, pi) => {
+                    const totalScore = p.scores.reduce((a, b) => a + b, 0);
+                    const chip = parseFloat(document.getElementById(`chip-${pi}`)?.value) || 0;
+                    document.getElementById(`total-${pi}`).innerText = totalScore.toFixed(1);
+                    document.getElementById(`total-${pi}`).className = totalScore < 0 ? 'negative' : (totalScore > 0 ? 'positive' : '');
+                    const income = Math.round(totalScore * set.rate) + chip - feePer;
+                    const incEl = document.getElementById(`income-${pi}`);
+                    if (incEl) {
+                        incEl.innerText = Math.round(income).toLocaleString();
+                        incEl.className = income < 0 ? 'text-red-400' : 'text-emerald-400';
+                    }
+                });
+
+                document.getElementById('save-set-btn').disabled = !isAllValid;
+                document.getElementById('force-save-btn').classList.toggle('hidden', isAllValid);
+                document.getElementById('validation-msg').classList.toggle('hidden', isAllValid);
+            },
+
+            saveCurrentSet() { if (confirm("対局を終了し保存しますか？")) this._finalize(); },
+            forceSaveCurrentSet() { if (confirm("不整合がありますが、強制的に保存しますか？")) this._finalize(); },
+
+            _finalize() {
+                const set = this.db.currentSet;
+                const feeTotal = parseFloat(document.getElementById('manual-fee')?.value) || 0;
+                const feePer = feeTotal / set.playerCount;
+                set.players.forEach((p, pi) => {
+                    const totalScore = p.scores.reduce((a, b) => a + b, 0);
+                    const chip = parseFloat(document.getElementById(`chip-${pi}`)?.value) || 0;
+                    p.chip = chip;
+                    p.income = Math.round(totalScore * set.rate) + chip - feePer;
+                });
+                set.fee = feeTotal;
+                this.db.history.unshift(JSON.parse(JSON.stringify(set)));
+                this.db.currentSet = null;
+                this.save();
+                this.setTab('history');
+            },
+
+            renderMembers() {
+                const list = document.getElementById('member-list');
+                list.innerHTML = '';
+                this.db.members.forEach(m => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white p-4 rounded-xl border flex justify-between items-center group';
+                    div.innerHTML = `
+                        <input type="text" value="${m.name}" onchange="app.editMemberName(${m.id}, this.value)" 
+                               class="font-bold bg-transparent border-none outline-none focus:text-emerald-600 transition-colors">
+                        <button onclick="app.delMember(${m.id})" class="text-slate-200 group-hover:text-rose-400 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>`;
+                    list.appendChild(div);
+                });
+                lucide.createIcons();
+            },
+            editMemberName(id, newName) {
+                if (!newName) return this.renderMembers();
+                const m = this.db.members.find(m => m.id === id);
+                if (m) { m.name = newName; this.save(); }
+            },
+            addMemberPrompt() {
+                const name = prompt("名前を入力");
+                if (name) { this.db.members.push({id: Date.now(), name}); this.save(); this.renderMembers(); }
+            },
+            delMember(id) {
+                if (confirm("削除しますか？")) { this.db.members = this.db.members.filter(m => m.id !== id); this.save(); this.renderMembers(); }
+            },
+
+            renderHistory() {
+                const list = document.getElementById('history-list');
+                list.innerHTML = '';
+                this.db.history.forEach(h => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white p-4 rounded-2xl border text-sm shadow-sm';
+                    let players = '';
+                    h.players.forEach(p => players += `<div class="flex justify-between mt-1"><span>${p.name}</span><span class="font-bold ${p.income<0?'text-red-500':'text-emerald-500'}">${Math.round(p.income).toLocaleString()}円</span></div>`);
+                    div.innerHTML = `<div class="text-[10px] text-slate-300 font-black italic mb-2 border-b pb-1 flex justify-between"><span>${new Date(h.date).toLocaleString()}</span><span>R:${h.rate}</span></div>${players}`;
+                    list.appendChild(div);
+                });
+            },
+            renderStats() {
+                const stats = {};
+                this.db.history.forEach(h => h.players.forEach(p => {
+                    if (!stats[p.name]) stats[p.name] = 0;
+                    stats[p.name] += p.income;
+                }));
+                const list = document.getElementById('player-stats-list');
+                list.innerHTML = '';
+                const sorted = Object.entries(stats).sort((a,b) => b[1]-a[1]);
+                sorted.forEach(([name, val]) => {
+                    list.innerHTML += `<div class="bg-white p-4 rounded-xl border flex justify-between items-center"><div><div class="font-black">${name}</div></div><div class="text-lg font-black ${val>=0?'text-emerald-500':'text-red-500'}">${Math.round(val).toLocaleString()}円</div></div>`;
+                });
+                if (sorted.length) this.drawChart(sorted);
+            },
+            drawChart(data) {
+                const ctx = document.getElementById('trendChart').getContext('2d');
+                if (this.chart) this.chart.destroy();
+                this.chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: data.map(d => d[1]>=0?'#10b981':'#ef4444'), borderRadius: 8 }] },
+                    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { display: false } } } }
+                });
+            },
+            closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        };
+
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
