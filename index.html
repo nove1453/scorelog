@@ -24,13 +24,19 @@
         .tab-btn.active { background: white; color: #10b981; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .tab-btn.inactive { color: #94a3b8; }
 
-        /* メンバー選択ボタンのスタイル */
-        .member-sel { transition: all 0.2s; border: 2px solid transparent; }
+        /* メンバー選択ボタンのスタイルを強化 */
+        .member-sel { 
+            transition: all 0.2s; 
+            border: 2px solid #f1f5f9;
+            background-color: #f8fafc;
+            color: #64748b;
+        }
         .member-sel.selected { 
             background-color: #ecfdf5; 
             border-color: #10b981; 
             color: #065f46;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            transform: scale(1.02);
+            box-shadow: 0 4px 6px -1px rgb(16 185 129 / 0.1);
         }
     </style>
 </head>
@@ -59,8 +65,8 @@
                 <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center">
                     <i data-lucide="spade" class="w-10 h-10"></i>
                 </div>
-                <h2 class="text-2xl font-black">対局を始めましょう</h2>
-                <button onclick="app.showNewSetModal()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg">対局を開始する</button>
+                <h2 class="text-2xl font-black text-slate-800">対局を始めましょう</h2>
+                <button onclick="app.showNewSetModal()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-transform">対局を開始する</button>
             </div>
 
             <!-- ビュー: 入力 -->
@@ -107,17 +113,18 @@
                 </div>
             </div>
 
-            <!-- 他のビューは共通 -->
             <div id="view-members" class="hidden p-4 space-y-4">
                 <div class="flex justify-between items-center font-black italic"><span>メンバー管理</span><button onclick="app.addMemberPrompt()" class="text-xs bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full font-bold">+ 追加</button></div>
                 <div id="member-list" class="space-y-2"></div>
             </div>
+
             <div id="view-stats" class="hidden p-4 space-y-4">
                 <div class="flex justify-between items-center"><h2 class="text-xl font-black italic">成績統計</h2></div>
                 <div class="tabs-container no-scrollbar" id="stats-tabs"></div>
-                <div class="bg-white border rounded-2xl p-2 shadow-sm"><canvas id="trendChart"></canvas></div>
+                <div class="bg-white border rounded-2xl p-2 shadow-sm mt-2"><canvas id="trendChart"></canvas></div>
                 <div id="player-stats-list" class="space-y-3"></div>
             </div>
+
             <div id="view-history" class="hidden p-4 space-y-4"><h2 class="text-xl font-black italic">アーカイブ</h2><div id="history-list" class="space-y-3"></div></div>
         </main>
 
@@ -152,7 +159,7 @@
                     <label class="text-[10px] font-black text-slate-400 uppercase italic">メンバー選択 (<span id="selected-count">0</span>名選択中)</label>
                     <div id="member-select-grid" class="grid grid-cols-2 gap-2"></div>
                 </div>
-                <button id="modal-start-btn" onclick="app.startSet()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg disabled:opacity-30" disabled>開始する</button>
+                <button id="modal-start-btn" onclick="app.startSet()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg disabled:opacity-30 active:scale-95 transition-all" disabled>開始する</button>
                 <button onclick="app.closeModal('modal-new-set')" class="w-full text-slate-400 text-xs font-bold py-2">キャンセル</button>
             </div>
         </div>
@@ -177,7 +184,10 @@
             save() { localStorage.setItem('scorelog_v16_final', JSON.stringify(this.db)); },
 
             setTab(tab) {
-                ['input', 'members', 'stats', 'history', 'welcome'].forEach(v => document.getElementById(`view-${v}`)?.classList.add('hidden'));
+                ['input', 'members', 'stats', 'history', 'welcome'].forEach(v => {
+                    const el = document.getElementById(`view-${v}`);
+                    if (el) el.classList.add('hidden');
+                });
                 ['input', 'members', 'stats', 'history'].forEach(n => {
                     const el = document.getElementById(`nav-${n}`);
                     if (el) el.className = (n === tab) ? 'flex flex-col items-center text-emerald-500' : 'flex flex-col items-center text-slate-400';
@@ -185,6 +195,7 @@
                 const targetView = document.getElementById(`view-${tab}`);
                 if (targetView) targetView.classList.remove('hidden');
                 document.getElementById('header-settings').classList.toggle('hidden', tab !== 'input');
+                
                 if (tab === 'input') this.renderInputTable();
                 if (tab === 'history') this.renderHistory();
                 if (tab === 'stats') this.renderStats(this.currentStatMode);
@@ -192,13 +203,15 @@
                 lucide.createIcons();
             },
 
-            // --- モーダル制御 ---
+            // --- モーダル制御（メンバー選択修正版） ---
             showNewSetModal() {
+                this.db.currentSet = null; // 新規作成時は確実にnullに
                 document.getElementById('setup-count').disabled = false;
                 document.getElementById('modal-title').innerText = "新規対局設定";
                 this.refreshMemberSelectUI();
                 this.openModal('modal-new-set');
             },
+
             showEditSetModal() {
                 if (!this.db.currentSet) return;
                 document.getElementById('modal-title').innerText = "対局条件の変更";
@@ -211,14 +224,18 @@
                 document.getElementById('selected-count').innerText = this.db.currentSet.playerCount;
                 this.openModal('modal-new-set');
             },
+
             refreshMemberSelectUI() {
                 const grid = document.getElementById('member-select-grid');
-                grid.innerHTML = '';
+                grid.innerHTML = ''; // 完全にクリア
+                
                 this.db.members.forEach(m => {
                     const btn = document.createElement('button');
-                    btn.className = 'member-sel bg-slate-50 border p-3 rounded-xl text-xs font-bold';
+                    btn.type = "button";
+                    btn.className = 'member-sel border p-3 rounded-xl text-xs font-bold';
                     btn.innerText = m.name;
-                    btn.onclick = () => {
+                    btn.onclick = (e) => {
+                        e.preventDefault();
                         btn.classList.toggle('selected');
                         this.updateStartButtonState();
                     };
@@ -226,16 +243,21 @@
                 });
                 this.updateStartButtonState();
             },
+
             updateStartButtonState() {
                 const selected = document.querySelectorAll('.member-sel.selected');
                 const required = parseInt(document.getElementById('setup-count').value);
                 document.getElementById('selected-count').innerText = selected.length;
                 const btn = document.getElementById('modal-start-btn');
-                // 新規対局の時だけ人数チェック（設定変更時は常に有効）
+                
+                // 新規対局の時のみ人数バリデーション
                 if (!this.db.currentSet) {
                     btn.disabled = selected.length !== required;
+                } else {
+                    btn.disabled = false;
                 }
             },
+
             startSet() {
                 if (this.db.currentSet) {
                     // 設定変更モード
@@ -246,18 +268,29 @@
                     this.closeModal('modal-new-set');
                     return;
                 }
+                
                 const sel = Array.from(document.querySelectorAll('.member-sel.selected'));
                 const c = parseInt(document.getElementById('setup-count').value);
+                
+                if (sel.length !== c) return;
+
+                // 入力フィールド（場代）をリセット
+                const feeInp = document.getElementById('manual-fee');
+                if (feeInp) feeInp.value = "";
+
                 this.db.currentSet = {
                     id: Date.now(), date: new Date().toISOString(), playerCount: c,
                     rate: parseInt(document.getElementById('setup-rate').value),
                     chipRate: parseInt(document.getElementById('setup-chip-rate').value),
                     players: sel.map(s => ({ name: s.innerText, scores: [0], chip: 0 }))
                 };
-                this.save(); this.closeModal('modal-new-set'); this.setTab('input');
+                
+                this.save(); 
+                this.closeModal('modal-new-set'); 
+                this.setTab('input');
             },
 
-            // --- 入力・計算ロジック（基本維持） ---
+            // --- 以下、計算・統計ロジック ---
             renderInputTable() {
                 const s = this.db.currentSet; if (!s) return;
                 const h = document.getElementById('player-headers');
@@ -273,8 +306,22 @@
                 document.querySelectorAll('.hidden-3p').forEach(el => el.style.display = s.playerCount === 3 ? 'none' : '');
                 this.calcAll();
             },
-            updateScore(ri, pi, v) { this.db.currentSet.players[pi].scores[ri] = parseFloat(v) || 0; this.calcAll(); this.save(); },
-            addRow() { this.db.currentSet.players.forEach(p => p.scores.push(0)); this.renderInputTable(); },
+
+            updateScore(ri, pi, v) { 
+                if (this.db.currentSet) {
+                    this.db.currentSet.players[pi].scores[ri] = parseFloat(v) || 0; 
+                    this.calcAll(); 
+                    this.save(); 
+                }
+            },
+
+            addRow() { 
+                if (this.db.currentSet) {
+                    this.db.currentSet.players.forEach(p => p.scores.push(0)); 
+                    this.renderInputTable(); 
+                }
+            },
+
             calcAll() {
                 const s = this.db.currentSet; if (!s) return;
                 let valid = true;
@@ -298,6 +345,7 @@
                 document.getElementById('save-set-btn').disabled = !valid;
                 document.getElementById('validation-msg').classList.toggle('hidden', valid);
             },
+
             saveCurrentSet() {
                 if (!confirm("対局結果を保存して終了しますか？")) return;
                 const set = JSON.parse(JSON.stringify(this.db.currentSet));
@@ -312,7 +360,6 @@
                 this.save(); this.setTab('history');
             },
 
-            // --- 統計(前回指示の7タブ) ---
             renderStats(mode) {
                 this.currentStatMode = mode;
                 const tabs = [
@@ -361,17 +408,31 @@
                     else if (mode === 'avg_rank') dv = v.toFixed(2);
                     else if (mode.includes('score')) dv = v.toFixed(1) + "pt";
                     else if (mode === 'income') dv += "円";
-                    list.innerHTML += `<div class="bg-white p-4 rounded-2xl border shadow-sm"><div class="flex justify-between items-center"><div class="font-black">${name}</div><div class="text-xl font-black ${v<0?'text-red-500':'text-emerald-500'}">${dv}</div></div></div>`;
+                    list.innerHTML += `<div class="bg-white p-4 rounded-2xl border shadow-sm"><div class="flex justify-between items-center"><div class="font-black">${name}</div><div class="text-xl font-black ${v<0 || (mode==='avg_rank' && v > 2.5) ? 'text-red-500' : 'text-emerald-500'}">${dv}</div></div></div>`;
                 });
                 this.drawChart(sortedList, mode, getVal);
             },
 
             drawChart(data, mode, getVal) {
                 const ctx = document.getElementById('trendChart').getContext('2d'); if (this.chart) this.chart.destroy();
-                this.chart = new Chart(ctx, { type: 'bar', data: { labels: data.map(d=>d[0]), datasets: [{ data: data.map(d=>getVal(d[1])), backgroundColor: '#10b981', borderRadius: 8 }] }, options: { indexAxis: 'y', plugins: { legend: { display: false } } } });
+                this.chart = new Chart(ctx, { 
+                    type: 'bar', 
+                    data: { 
+                        labels: data.map(d=>d[0]), 
+                        datasets: [{ 
+                            data: data.map(d=>getVal(d[1])), 
+                            backgroundColor: '#10b981', 
+                            borderRadius: 8 
+                        }] 
+                    }, 
+                    options: { 
+                        indexAxis: 'y', 
+                        plugins: { legend: { display: false } },
+                        scales: { x: { grid: { display: false } }, y: { grid: { display: false } } }
+                    } 
+                });
             },
 
-            // --- ユーティリティ ---
             renderMembers() {
                 const list = document.getElementById('member-list'); list.innerHTML = '';
                 this.db.members.forEach(m => {
@@ -389,7 +450,7 @@
                 this.db.history.forEach((h, i) => {
                     const div = document.createElement('div'); div.className = 'bg-white p-4 rounded-2xl border shadow-sm relative';
                     let ps = ''; h.players.forEach(p => ps += `<div class="flex justify-between text-sm mt-1"><span>${p.name}</span><span class="font-bold ${p.income<0?'text-red-500':'text-emerald-500'}">${Math.round(p.income).toLocaleString()}円</span></div>`);
-                    div.innerHTML = `<div class="text-[9px] text-slate-300 font-bold border-b mb-2 pb-1">${new Date(h.date).toLocaleString()}</div><button onclick="app.delHistory(${i})" class="absolute top-4 right-4 text-slate-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>${ps}`;
+                    div.innerHTML = `<div class="text-[9px] text-slate-300 font-bold border-b mb-2 pb-1">${new Date(h.date).toLocaleString()}</div><button onclick="app.delHistory(${i})" class="absolute top-4 right-4 text-slate-200 hover:text-rose-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>${ps}`;
                     l.appendChild(div);
                 }); lucide.createIcons();
             },
