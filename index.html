@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ScoreLog Pro</title>
+    <title>麻雀スコア管理 ScoreLog Pro AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -11,7 +11,7 @@
         body {
             background-color: #f8fafc;
             color: #1e293b;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
             overscroll-behavior: none;
         }
         .score-table th, .score-table td {
@@ -19,26 +19,36 @@
             padding: 10px 4px;
             text-align: center;
         }
-        .score-table th { background-color: #f1f5f9; font-size: 0.7rem; font-weight: 800; }
-        .score-table input { width: 100%; text-align: center; background: transparent; border: none; outline: none; font-size: 1rem; }
+        .score-table th { background-color: #f1f5f9; font-size: 0.75rem; font-weight: 800; }
+        .score-table input { width: 100%; text-align: center; background: transparent; border: none; outline: none; font-size: 1.1rem; }
         .negative { color: #ef4444; font-weight: bold; }
         .positive { color: #10b981; font-weight: bold; }
         .sticky-col { position: sticky; left: 0; background: white; z-index: 5; }
         .member-sel.selected { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; }
         .row-error { background-color: #fff1f2 !important; }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .loading-shimmer {
+            background: linear-gradient(90deg, #10b981 25%, #34d399 50%, #10b981 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-slate-50 flex flex-col min-h-screen">
+<body class="bg-slate-50 flex flex-col min-h-screen text-slate-900">
 
-    <div id="app" class="max-w-md mx-auto flex-1 flex flex-col bg-white shadow-xl relative overflow-hidden">
+    <div id="app-container" class="max-w-md mx-auto flex-1 flex flex-col bg-white shadow-xl relative overflow-hidden">
         
-        <!-- Header -->
+        <!-- ヘッダー -->
         <header class="p-4 bg-white border-b flex justify-between items-center shrink-0 z-40">
             <div class="flex items-center gap-2">
-                <i data-lucide="sparkles" class="text-emerald-500"></i>
-                <h1 class="text-lg font-black tracking-tighter italic uppercase">ScoreLog Pro</h1>
+                <i data-lucide="sparkles" class="text-emerald-500 w-5 h-5"></i>
+                <h1 class="text-lg font-black tracking-tighter italic">ScoreLog Pro AI</h1>
             </div>
             <div class="flex gap-2">
                 <button id="header-settings" onclick="app.showEditSetModal()" class="hidden p-2 text-slate-400">
@@ -51,27 +61,27 @@
         </header>
 
         <main class="flex-1 overflow-y-auto no-scrollbar pb-24">
-            <!-- VIEW: WELCOME -->
+            <!-- ビュー: ウェルカム画面 -->
             <div id="view-welcome" class="flex flex-col items-center justify-center py-20 px-10 text-center space-y-6">
                 <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center">
                     <i data-lucide="spade" class="w-10 h-10"></i>
                 </div>
-                <h2 class="text-2xl font-black italic">ARE YOU READY?</h2>
+                <h2 class="text-2xl font-black">対局を始めましょう</h2>
                 <button onclick="app.showNewSetModal()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg">対局を開始する</button>
             </div>
 
-            <!-- VIEW: INPUT -->
+            <!-- ビュー: 入力画面 (対局中) -->
             <div id="view-input" class="hidden">
-                <div id="validation-msg" class="bg-rose-50 border-b border-rose-100 p-2 text-[10px] text-rose-700 font-bold hidden flex items-center gap-1">
+                <div id="validation-msg" class="bg-rose-50 border-b border-rose-100 p-2 text-[10px] text-rose-700 font-bold hidden flex items-center gap-1 text-center justify-center">
                     <i data-lucide="alert-circle" class="w-3 h-3"></i><span>各行の合計を 0 にしてください</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full score-table border-collapse table-fixed min-w-[320px]">
-                        <thead><tr id="player-headers"><th class="w-10 sticky-col italic uppercase">No</th></tr></thead>
+                        <thead><tr id="player-headers"><th class="w-10 sticky-col">回数</th></tr></thead>
                         <tbody id="score-rows"></tbody>
                         <tfoot class="text-sm">
                             <tr class="bg-slate-50 font-bold">
-                                <td class="sticky-col font-black italic">PT</td>
+                                <td class="sticky-col font-black italic">合計点</td>
                                 <td id="total-0">0</td><td id="total-1">0</td><td id="total-2">0</td><td id="total-3" class="hidden-3p">0</td>
                             </tr>
                             <tr class="text-[10px] text-slate-400 font-bold italic">
@@ -82,12 +92,12 @@
                                 <td class="hidden-3p"><input type="number" id="chip-3" oninput="app.calcAll()" placeholder="0"></td>
                             </tr>
                             <tr class="text-[10px] text-slate-400 font-bold italic">
-                                <td class="sticky-col font-black">FEE</td>
+                                <td class="sticky-col font-black text-[8px]">場代(合計)</td>
                                 <td id="fee-container" colspan="4" class="p-0">
-                                    <input type="number" id="manual-fee" oninput="app.calcAll()" placeholder="支払い合計を入力" class="w-full py-2 italic font-black">
+                                    <input type="number" id="manual-fee" oninput="app.calcAll()" placeholder="支払い合計（場代）を入力" class="w-full py-2 italic font-black">
                                 </td>
                             </tr>
-                            <tr class="bg-slate-900 text-white font-black italic">
+                            <tr class="bg-slate-900 text-white font-black">
                                 <td class="sticky-col bg-slate-900">収支</td>
                                 <td id="income-0">0</td><td id="income-1">0</td><td id="income-2">0</td><td id="income-3" class="hidden-3p">0</td>
                             </tr>
@@ -98,162 +108,291 @@
                     <button onclick="app.addRow()" class="w-full py-3 bg-slate-100 rounded-xl text-slate-600 font-bold flex items-center justify-center gap-2">
                         <i data-lucide="list-plus" class="w-4 h-4"></i> 半荘を追加
                     </button>
+                    <button id="btn-analyze-current" onclick="app.analyzeCurrent()" class="w-full py-3 bg-emerald-50 text-emerald-600 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
+                        ✨ AI戦況分析
+                    </button>
                     <div class="pt-2">
                         <button id="save-set-btn" onclick="app.saveCurrentSet()" class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl disabled:opacity-20 transition-all" disabled>対局を保存して終了</button>
                     </div>
                 </div>
             </div>
 
-            <!-- VIEW: MEMBERS -->
+            <!-- ビュー: メンバー (ユーザー管理) -->
             <div id="view-members" class="hidden p-4 space-y-4">
-                <div class="flex justify-between items-center font-black italic">USERS<button onclick="app.addMemberPrompt()" class="text-xs bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full font-bold">+ ADD</button></div>
+                <div class="flex justify-between items-center font-black italic">
+                    <span>メンバー管理</span>
+                    <button onclick="app.addMemberPrompt()" class="text-xs bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full font-bold">+ 追加</button>
+                </div>
                 <div id="member-list" class="space-y-2"></div>
-                <p class="text-[10px] text-slate-400 text-center font-bold">名前をタップして編集できます</p>
             </div>
 
-            <!-- VIEW: STATS, HISTORY -->
+            <!-- ビュー: 成績 (統計) -->
             <div id="view-stats" class="hidden p-4 space-y-4">
-                <h2 class="text-xl font-black italic uppercase">STATISTICS</h2>
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-black italic">成績統計</h2>
+                    <button id="btn-analyze-long" onclick="app.analyzeLongTerm()" class="text-xs font-black bg-slate-900 text-white px-4 py-2 rounded-full shadow-lg">✨ AI傾向分析</button>
+                </div>
                 <div class="bg-white border rounded-2xl p-2 shadow-sm"><canvas id="trendChart"></canvas></div>
-                <div id="player-stats-list" class="space-y-2"></div>
+                <div id="player-stats-list" class="space-y-3"></div>
             </div>
+
+            <!-- ビュー: 履歴 (ログ) -->
             <div id="view-history" class="hidden p-4 space-y-4">
-                <h2 class="text-xl font-black italic uppercase">ARCHIVE</h2>
+                <h2 class="text-xl font-black italic">アーカイブ</h2>
                 <div id="history-list" class="space-y-3"></div>
             </div>
         </main>
 
+        <!-- ナビゲーション -->
         <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t flex justify-around items-center h-16 pb-safe z-30">
-            <button onclick="app.setTab('input')" id="nav-input" class="flex flex-col items-center text-slate-400"><i data-lucide="edit-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">PLAY</span></button>
-            <button onclick="app.setTab('members')" id="nav-members" class="flex flex-col items-center text-slate-400"><i data-lucide="users" class="w-5 h-5"></i><span class="text-[10px] font-bold">USERS</span></button>
-            <button onclick="app.setTab('stats')" id="nav-stats" class="flex flex-col items-center text-slate-400"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">STATS</span></button>
-            <button onclick="app.setTab('history')" id="nav-history" class="flex flex-col items-center text-slate-400"><i data-lucide="archive" class="w-5 h-5"></i><span class="text-[10px] font-bold">LOG</span></button>
+            <button onclick="app.setTab('input')" id="nav-input" class="flex flex-col items-center text-slate-400"><i data-lucide="edit-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">対局</span></button>
+            <button onclick="app.setTab('members')" id="nav-members" class="flex flex-col items-center text-slate-400"><i data-lucide="users" class="w-5 h-5"></i><span class="text-[10px] font-bold">メンバー</span></button>
+            <button onclick="app.setTab('stats')" id="nav-stats" class="flex flex-col items-center text-slate-400"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">成績</span></button>
+            <button onclick="app.setTab('history')" id="nav-history" class="flex flex-col items-center text-slate-400"><i data-lucide="archive" class="w-5 h-5"></i><span class="text-[10px] font-bold">履歴</span></button>
         </nav>
 
-        <!-- SETUP MODAL -->
+        <!-- AI モーダル -->
+        <div id="modal-ai" class="hidden fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-6">
+            <div class="bg-white w-full rounded-3xl p-6 space-y-4 max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+                <div class="flex items-center gap-2 text-emerald-600">
+                    <i data-lucide="sparkles"></i>
+                    <h3 class="font-black italic">✨ AI分析レポート</h3>
+                </div>
+                <div id="ai-content" class="flex-1 overflow-y-auto text-sm leading-relaxed text-slate-600 no-scrollbar whitespace-pre-wrap"></div>
+                <button onclick="app.closeModal('modal-ai')" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black">閉じる</button>
+            </div>
+        </div>
+
+        <!-- 設定モーダル -->
         <div id="modal-new-set" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
-            <div class="bg-white w-full rounded-3xl p-6 space-y-5 max-h-[90vh] flex flex-col">
-                <h3 id="modal-title" class="text-xl font-black text-center italic uppercase tracking-widest">Setup</h3>
+            <div class="bg-white w-full rounded-3xl p-6 space-y-5 max-h-[90vh] flex flex-col shadow-2xl">
+                <h3 id="modal-title" class="text-xl font-black text-center italic">対局設定</h3>
                 <div class="space-y-4 flex-1 overflow-y-auto no-scrollbar">
                     <div class="grid grid-cols-2 gap-2">
-                        <select id="setup-count" class="bg-slate-100 rounded-xl p-3 text-sm font-bold appearance-none" onchange="app.refreshMemberSelectUI()">
-                            <option value="4">4人打ち</option><option value="3">3人打ち</option>
-                        </select>
-                        <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase">Rate</span><input type="number" id="setup-rate" class="w-full bg-slate-100 rounded-xl p-3 pl-12 text-sm font-bold" value="50"></div>
-                        <div class="relative col-span-2">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase">Chip Rate (pt/枚)</span>
-                            <input type="number" id="setup-chip-rate" class="w-full bg-slate-100 rounded-xl p-3 pl-28 text-sm font-bold" value="5">
+                        <div class="col-span-2 space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase">ルール</label>
+                            <select id="setup-count" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold appearance-none" onchange="app.refreshMemberSelectUI()">
+                                <option value="4">4人打ち</option><option value="3">3人打ち</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase">レート (1pt/円)</label>
+                            <input type="number" id="setup-rate" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold" value="50">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase">チップ (円/枚)</label>
+                            <input type="number" id="setup-chip-rate" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold" value="5">
                         </div>
                     </div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">メンバー選択</label>
                     <div id="member-select-grid" class="grid grid-cols-2 gap-2"></div>
                 </div>
-                <button id="modal-start-btn" onclick="app.startSet()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg">START</button>
-                <button onclick="app.closeModal('modal-new-set')" class="w-full text-slate-400 text-xs font-bold py-2">CANCEL</button>
+                <button id="modal-start-btn" onclick="app.startSet()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg">開始する</button>
+                <button onclick="app.closeModal('modal-new-set')" class="w-full text-slate-400 text-xs font-bold py-2">キャンセル</button>
             </div>
         </div>
     </div>
 
     <script>
+        const apiKey = ""; // API Key 
+
         const app = {
             db: { members: [], history: [], currentSet: null },
             chart: null,
 
             init() {
-                const saved = localStorage.getItem('scorelog_v9');
-                if (saved) this.db = JSON.parse(saved);
+                const saved = localStorage.getItem('scorelog_v12_jp');
+                if (saved) {
+                    try {
+                        this.db = JSON.parse(saved);
+                    } catch(e) {
+                        console.error("Parse error", e);
+                    }
+                }
                 if (!this.db.members || this.db.members.length === 0) {
-                    this.db.members = [{id:1, name:'かなさ'}, {id:2, name:'しぶや'}, {id:3, name:'高石さん'}, {id:4, name:'たくろう'}];
+                    this.db.members = [
+                        {id:1, name:'かなさ'}, 
+                        {id:2, name:'しぶや'}, 
+                        {id:3, name:'高石さん'}, 
+                        {id:4, name:'たくろう'}
+                    ];
                 }
                 this.setTab(this.db.currentSet ? 'input' : 'welcome');
                 lucide.createIcons();
             },
 
-            save() { localStorage.setItem('scorelog_v9', JSON.stringify(this.db)); },
+            save() { 
+                localStorage.setItem('scorelog_v12_jp', JSON.stringify(this.db)); 
+            },
 
             setTab(tab) {
-                ['input', 'members', 'stats', 'history', 'welcome'].forEach(v => document.getElementById(`view-${v}`)?.classList.add('hidden'));
-                ['input', 'members', 'stats', 'history'].forEach(n => document.getElementById(`nav-${n}`)?.classList.replace('text-emerald-500', 'text-slate-400'));
-                document.getElementById(`view-${tab}`)?.classList.remove('hidden');
-                document.getElementById(`nav-${tab}`)?.classList.replace('text-slate-400', 'text-emerald-500');
-                document.getElementById('header-settings').classList.toggle('hidden', tab !== 'input');
+                ['input', 'members', 'stats', 'history', 'welcome'].forEach(v => {
+                    const el = document.getElementById(`view-${v}`);
+                    if (el) el.classList.add('hidden');
+                });
+                ['input', 'members', 'stats', 'history'].forEach(n => {
+                    const el = document.getElementById(`nav-${n}`);
+                    if (el) el.classList.replace('text-emerald-500', 'text-slate-400');
+                });
+
+                const targetView = document.getElementById(`view-${tab}`);
+                if (targetView) targetView.classList.remove('hidden');
+
+                const targetNav = document.getElementById(`nav-${tab}`);
+                if (targetNav) targetNav.classList.replace('text-slate-400', 'text-emerald-500');
+                
+                const settingsBtn = document.getElementById('header-settings');
+                if (settingsBtn) settingsBtn.classList.toggle('hidden', tab !== 'input');
                 
                 if (tab === 'input') this.renderInputTable();
                 if (tab === 'history') this.renderHistory();
                 if (tab === 'stats') this.renderStats();
                 if (tab === 'members') this.renderMembers();
+                
                 lucide.createIcons();
             },
 
+            // --- メンバー管理 ---
+            renderMembers() {
+                const list = document.getElementById('member-list'); 
+                list.innerHTML = '';
+                this.db.members.forEach(m => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white p-4 rounded-xl border flex justify-between items-center group shadow-sm';
+                    
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.value = m.name;
+                    nameInput.className = 'font-bold bg-transparent border-none outline-none focus:text-emerald-600 flex-1';
+                    nameInput.onchange = (e) => this.editMemberName(m.id, e.target.value);
+                    
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'text-slate-300 hover:text-rose-500 transition-colors p-2';
+                    delBtn.innerHTML = `<i data-lucide="trash-2" class="w-5 h-5"></i>`;
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        this.delMember(m.id);
+                    };
+                    
+                    div.appendChild(nameInput);
+                    div.appendChild(delBtn);
+                    list.appendChild(div);
+                }); 
+                lucide.createIcons();
+            },
+            editMemberName(id, name) { 
+                if (name) { 
+                    const member = this.db.members.find(m=>m.id===id);
+                    if (member) {
+                        member.name = name; 
+                        this.save(); 
+                    }
+                } 
+            },
+            addMemberPrompt() { 
+                const n = prompt("新しいメンバーの名前を入力してください"); 
+                if (n && n.trim()) { 
+                    this.db.members.push({id: Date.now(), name: n.trim()}); 
+                    this.save(); 
+                    this.renderMembers(); 
+                } 
+            },
+            delMember(id) { 
+                if (confirm("このメンバーを一覧から削除しますか？\n（過去の成績データには影響しません）")) { 
+                    this.db.members = this.db.members.filter(m => m.id !== id); 
+                    this.save(); 
+                    this.renderMembers(); 
+                } 
+            },
+
+            // --- 対局設定 ---
             showNewSetModal() {
-                document.getElementById('modal-title').innerText = "Game Setup";
-                document.getElementById('modal-start-btn').onclick = () => app.startSet();
+                document.getElementById('modal-title').innerText = "新規対局の設定";
+                const startBtn = document.getElementById('modal-start-btn');
+                startBtn.onclick = () => app.startSet();
+                startBtn.innerText = "開始する";
                 document.getElementById('setup-count').disabled = false;
                 this.refreshMemberSelectUI();
                 document.getElementById('modal-new-set').classList.remove('hidden');
             },
-
             showEditSetModal() {
                 if (!this.db.currentSet) return;
-                document.getElementById('modal-title').innerText = "Settings";
-                document.getElementById('modal-start-btn').onclick = () => app.applySettingsChange();
+                document.getElementById('modal-title').innerText = "対局設定の変更";
+                const startBtn = document.getElementById('modal-start-btn');
+                startBtn.onclick = () => app.applySettingsChange();
+                startBtn.innerText = "変更を適用";
                 document.getElementById('setup-count').value = this.db.currentSet.playerCount;
                 document.getElementById('setup-count').disabled = true;
                 document.getElementById('setup-rate').value = this.db.currentSet.rate;
                 document.getElementById('setup-chip-rate').value = this.db.currentSet.chipRate || 5;
-                document.getElementById('member-select-grid').innerHTML = '<p class="col-span-2 text-center text-xs text-slate-400 py-4 font-bold">対局中のメンバー変更はできません</p>';
+                document.getElementById('member-select-grid').innerHTML = '<p class="col-span-2 text-center text-[10px] text-slate-400 py-4 font-bold">対局開始後のメンバー変更はできません</p>';
                 document.getElementById('modal-new-set').classList.remove('hidden');
             },
-
             applySettingsChange() {
                 this.db.currentSet.rate = parseInt(document.getElementById('setup-rate').value) || 0;
                 this.db.currentSet.chipRate = parseInt(document.getElementById('setup-chip-rate').value) || 0;
-                this.save(); this.calcAll(); this.closeModal('modal-new-set');
+                this.save(); 
+                this.calcAll(); 
+                this.closeModal('modal-new-set');
             },
-
             refreshMemberSelectUI() {
-                const grid = document.getElementById('member-select-grid'); grid.innerHTML = '';
+                const grid = document.getElementById('member-select-grid'); 
+                grid.innerHTML = '';
                 this.db.members.forEach(m => {
                     const btn = document.createElement('button');
-                    btn.className = 'member-sel bg-slate-50 border border-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600';
-                    btn.innerText = m.name; btn.onclick = () => btn.classList.toggle('selected');
+                    btn.className = 'member-sel bg-slate-50 border border-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600 transition-all';
+                    btn.innerText = m.name; 
+                    btn.onclick = () => btn.classList.toggle('selected');
                     grid.appendChild(btn);
                 });
             },
-
             startSet() {
                 const selected = Array.from(document.querySelectorAll('.member-sel.selected'));
                 const count = parseInt(document.getElementById('setup-count').value);
-                if (selected.length !== count) return alert(`${count}名選んでください`);
+                if (selected.length !== count) return alert(`${count}名選択してください`);
                 this.db.currentSet = {
-                    id: Date.now(), date: new Date().toISOString(), playerCount: count,
+                    id: Date.now(), 
+                    date: new Date().toISOString(), 
+                    playerCount: count,
                     rate: parseInt(document.getElementById('setup-rate').value) || 50,
                     chipRate: parseInt(document.getElementById('setup-chip-rate').value) || 5,
                     players: selected.map(s => ({ name: s.innerText, scores: [0], chip: 0, income: 0 }))
                 };
-                this.save(); this.closeModal('modal-new-set'); this.setTab('input');
+                this.save(); 
+                this.closeModal('modal-new-set'); 
+                this.setTab('input');
             },
 
+            // --- 入力ロジック ---
             renderInputTable() {
                 const set = this.db.currentSet; if (!set) return;
                 const head = document.getElementById('player-headers');
-                head.innerHTML = '<th class="w-10 sticky-col italic uppercase">No</th>';
+                head.innerHTML = '<th class="w-10 sticky-col">回</th>';
                 set.players.forEach(p => head.innerHTML += `<th class="truncate">${p.name}</th>`);
-                const rows = document.getElementById('score-rows'); rows.innerHTML = '';
+                const rows = document.getElementById('score-rows'); 
+                rows.innerHTML = '';
                 for (let i = 0; i < set.players[0].scores.length; i++) {
-                    const tr = document.createElement('tr'); tr.id = `row-${i}`;
+                    const tr = document.createElement('tr'); 
+                    tr.id = `row-${i}`;
                     let html = `<td class="sticky-col text-[10px] text-slate-300 font-black italic">${i+1}</td>`;
                     set.players.forEach((p, pi) => html += `<td><input type="number" step="0.1" value="${p.scores[i]}" oninput="app.updateScore(${i}, ${pi}, this.value)"></td>`);
-                    tr.innerHTML = html; rows.appendChild(tr);
+                    tr.innerHTML = html; 
+                    rows.appendChild(tr);
                 }
                 document.querySelectorAll('.hidden-3p').forEach(el => el.style.display = set.playerCount === 3 ? 'none' : '');
-                const feeCol = document.getElementById('fee-container'); if (feeCol) feeCol.colSpan = set.playerCount === 3 ? 3 : 4;
+                const feeCol = document.getElementById('fee-container'); 
+                if (feeCol) feeCol.colSpan = set.playerCount === 3 ? 3 : 4;
                 this.calcAll();
             },
-
-            updateScore(ri, pi, v) { this.db.currentSet.players[pi].scores[ri] = parseFloat(v) || 0; this.calcAll(); this.save(); },
-
-            addRow() { this.db.currentSet.players.forEach(p => p.scores.push(0)); this.renderInputTable(); },
-
+            updateScore(ri, pi, v) { 
+                this.db.currentSet.players[pi].scores[ri] = parseFloat(v) || 0; 
+                this.calcAll(); 
+                this.save(); 
+            },
+            addRow() { 
+                this.db.currentSet.players.forEach(p => p.scores.push(0)); 
+                this.renderInputTable(); 
+            },
             calcAll() {
                 const set = this.db.currentSet; if (!set) return;
                 let isAllValid = true;
@@ -264,91 +403,211 @@
                 for (let i = 0; i < set.players[0].scores.length; i++) {
                     const rowSum = set.players.reduce((a, p) => a + (Number(p.scores[i]) || 0), 0);
                     const rowEl = document.getElementById(`row-${i}`);
-                    if (Math.abs(Math.round(rowSum * 10) / 10) > 0.1) { rowEl?.classList.add('row-error'); isAllValid = false; }
-                    else { rowEl?.classList.remove('row-error'); }
+                    if (Math.abs(Math.round(rowSum * 10) / 10) > 0.1) { 
+                        rowEl?.classList.add('row-error'); 
+                        isAllValid = false; 
+                    } else { 
+                        rowEl?.classList.remove('row-error'); 
+                    }
                 }
 
                 set.players.forEach((p, pi) => {
                     const totalScore = p.scores.reduce((a, b) => a + b, 0);
                     const chipCount = parseFloat(document.getElementById(`chip-${pi}`)?.value) || 0;
-                    const chipPoint = chipCount * chipRate;
+                    const chipValue = chipCount * chipRate;
+                    const income = Math.round((totalScore + (chipValue/set.rate)) * set.rate) - feePer;
+                    
                     document.getElementById(`total-${pi}`).innerText = totalScore.toFixed(1);
                     document.getElementById(`total-${pi}`).className = totalScore < 0 ? 'negative' : (totalScore > 0 ? 'positive' : '');
-                    const income = Math.round((totalScore + chipPoint) * set.rate) - feePer;
+                    
                     const incEl = document.getElementById(`income-${pi}`);
-                    if (incEl) { incEl.innerText = Math.round(income).toLocaleString(); incEl.className = income < 0 ? 'text-red-400' : 'text-emerald-400'; }
+                    if (incEl) { 
+                        incEl.innerText = Math.round(income).toLocaleString() + "円"; 
+                        incEl.className = income < 0 ? 'text-red-400' : 'text-emerald-400'; 
+                    }
                 });
                 document.getElementById('save-set-btn').disabled = !isAllValid;
                 document.getElementById('validation-msg').classList.toggle('hidden', isAllValid);
             },
 
-            saveCurrentSet() {
-                if (confirm("保存しますか？")) {
-                    const set = this.db.currentSet;
-                    const feePer = (parseFloat(document.getElementById('manual-fee')?.value) || 0) / set.playerCount;
-                    set.players.forEach((p, pi) => {
-                        const chipCount = parseFloat(document.getElementById(`chip-${pi}`)?.value) || 0;
-                        p.chip = chipCount;
-                        p.income = Math.round((p.scores.reduce((a,b)=>a+b,0) + chipCount * set.chipRate) * set.rate) - feePer;
+            async saveCurrentSet() {
+                if (!confirm("対局を保存して終了します。AIレポートを生成しますか？")) return;
+                const set = JSON.parse(JSON.stringify(this.db.currentSet));
+                const feePer = (parseFloat(document.getElementById('manual-fee')?.value) || 0) / set.playerCount;
+                
+                set.players.forEach((p, pi) => {
+                    const chipCount = parseFloat(document.getElementById(`chip-${pi}`)?.value) || 0;
+                    p.chip = chipCount;
+                    p.totalScore = p.scores.reduce((a,b)=>a+b,0);
+                    p.income = Math.round((p.totalScore + (chipCount * set.chipRate / set.rate)) * set.rate) - feePer;
+                });
+                
+                app.openModal('modal-ai', 'レポートを作成中です。少々お待ちください...');
+                const report = await this.callAI(`
+                    対局データ: ${JSON.stringify(set)}
+                    上記の結果から、今日のハイライトや各プレイヤーへの短い激励・アドバイスを「ニュース速報」のようなスタイルで150文字程度で作成してください。
+                    専門用語を交えたプロの解説者風に日本語でお願いします。
+                `, "save-set-btn");
+                document.getElementById('ai-content').innerText = report;
+                
+                this.db.history.unshift(set);
+                this.db.currentSet = null;
+                this.save();
+                this.setTab('history');
+            },
+
+            // --- AI ロジック ---
+            async callAI(prompt, btnId = "btn-analyze-current") {
+                const btn = document.getElementById(btnId);
+                if (btn) btn.classList.add('loading-shimmer');
+
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: "あなたはプロの麻雀解説者です。ユーモアを交えつつ、鋭い分析を行い、日本語で回答してください。" }] }
+                        })
                     });
-                    this.db.history.unshift(JSON.parse(JSON.stringify(set)));
-                    this.db.currentSet = null; this.save(); this.setTab('history');
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "AI分析がうまく機能しませんでした。";
+                } catch (e) {
+                    return "通信中にエラーが発生しました。インターネット接続を確認してください。";
+                } finally {
+                    if (btn) btn.classList.remove('loading-shimmer');
                 }
             },
 
-            renderMembers() {
-                const list = document.getElementById('member-list'); list.innerHTML = '';
-                this.db.members.forEach(m => {
-                    const div = document.createElement('div');
-                    div.className = 'bg-white p-4 rounded-xl border flex justify-between items-center group';
-                    div.innerHTML = `
-                        <input type="text" value="${m.name}" onchange="app.editMemberName(${m.id}, this.value)" 
-                               class="font-bold bg-transparent border-none outline-none focus:text-emerald-600 transition-colors">
-                        <button onclick="app.delMember(${m.id})" class="text-slate-200 group-hover:text-rose-400 transition-colors">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>`;
-                    list.appendChild(div);
-                }); lucide.createIcons();
-            },
-            editMemberName(id, newName) {
-                if (!newName) return this.renderMembers();
-                const m = this.db.members.find(m => m.id === id);
-                if (m) { m.name = newName; this.save(); }
-            },
-            addMemberPrompt() {
-                const name = prompt("名前を入力");
-                if (name) { this.db.members.push({id: Date.now(), name}); this.save(); this.renderMembers(); }
-            },
-            delMember(id) {
-                if (confirm("削除しますか？")) { this.db.members = this.db.members.filter(m => m.id !== id); this.save(); this.renderMembers(); }
+            async analyzeCurrent() {
+                if (!this.db.currentSet) return;
+                app.openModal('modal-ai', '現在の戦況から展開を予測しています...');
+                const prompt = `現在の対局データ: ${JSON.stringify(this.db.currentSet)}。これまでの流れを読み、誰が勢いに乗っているか、逆転のための戦略などを解説してください。`;
+                const result = await this.callAI(prompt, "btn-analyze-current");
+                document.getElementById('ai-content').innerText = result;
             },
 
+            async analyzeLongTerm() {
+                if (this.db.history.length === 0) return alert("分析するための履歴がまだありません。");
+                app.openModal('modal-ai', '過去の全ての記録をスキャンして傾向を分析しています...');
+                const historyStr = JSON.stringify(this.db.history.slice(0, 15));
+                const prompt = `過去の対局履歴データ: ${historyStr}。各プレイヤーの勝ちパターンや弱点、相性などを「辛口」かつ的確に分析してください。`;
+                const result = await this.callAI(prompt, "btn-analyze-long");
+                document.getElementById('ai-content').innerText = result;
+            },
+
+            // --- 統計 & 履歴 ---
             renderHistory() {
-                const list = document.getElementById('history-list'); list.innerHTML = '';
+                const list = document.getElementById('history-list'); 
+                list.innerHTML = '';
+                if (this.db.history.length === 0) {
+                    list.innerHTML = '<p class="text-center text-slate-400 py-10 text-sm">履歴はありません</p>';
+                    return;
+                }
                 this.db.history.forEach(h => {
-                    const div = document.createElement('div'); div.className = 'bg-white p-4 rounded-2xl border text-sm shadow-sm';
-                    let ps = ''; h.players.forEach(p => ps += `<div class="flex justify-between mt-1"><span>${p.name}</span><span class="font-bold ${p.income<0?'text-red-500':'text-emerald-500'}">${Math.round(p.income).toLocaleString()}円</span></div>`);
-                    div.innerHTML = `<div class="text-[10px] text-slate-300 font-black italic mb-2 border-b pb-1 flex justify-between"><span>${new Date(h.date).toLocaleString()}</span><span>R:${h.rate} (チップ:${h.chipRate}pt)</span></div>${ps}`;
+                    const div = document.createElement('div'); 
+                    div.className = 'bg-white p-4 rounded-2xl border text-sm shadow-sm';
+                    let ps = ''; 
+                    h.players.forEach(p => ps += `<div class="flex justify-between mt-1"><span>${p.name}</span><span class="font-bold ${p.income<0?'text-red-500':'text-emerald-500'}">${Math.round(p.income).toLocaleString()}円</span></div>`);
+                    div.innerHTML = `<div class="text-[10px] text-slate-300 font-black italic mb-2 border-b pb-1 flex justify-between"><span>${new Date(h.date).toLocaleString('ja-JP')}</span><span>レート:${h.rate}円 (チップ:${h.chipRate}円)</span></div>${ps}`;
                     list.appendChild(div);
                 });
             },
 
             renderStats() {
-                const stats = {}; this.db.history.forEach(h => h.players.forEach(p => { stats[p.name] = (stats[p.name] || 0) + p.income; }));
-                const list = document.getElementById('player-stats-list'); list.innerHTML = '';
-                const sorted = Object.entries(stats).sort((a,b)=>b[1]-a[1]);
-                sorted.forEach(([n, v]) => { 
-                    list.innerHTML += `<div class="bg-white p-4 rounded-xl border flex justify-between items-center"><div class="font-black">${n}</div><div class="text-lg font-black ${v>=0?'text-emerald-500':'text-red-500'}">${Math.round(v).toLocaleString()}円</div></div>`; 
+                const stats = {};
+                this.db.history.forEach(h => {
+                    h.players.forEach(p => {
+                        if (!stats[p.name]) stats[p.name] = { income: 0, points: 0, games: 0, ranks: { 1: 0, 2: 0, 3: 0, 4: 0 } };
+                        const s = stats[p.name];
+                        s.income += p.income;
+                        s.points += (p.totalScore || 0);
+                        s.games += 1;
+                        const sortedScores = [...h.players].sort((a,b) => b.totalScore - a.totalScore);
+                        const rank = sortedScores.findIndex(sp => sp.name === p.name) + 1;
+                        s.ranks[rank]++;
+                    });
+                });
+
+                const list = document.getElementById('player-stats-list'); 
+                list.innerHTML = '';
+                const sorted = Object.entries(stats).sort((a,b) => b[1].income - a[1].income);
+                
+                if (sorted.length === 0) {
+                    list.innerHTML = '<p class="text-center text-slate-400 py-10 text-sm">統計データがありません</p>';
+                    return;
+                }
+
+                sorted.forEach(([name, s]) => {
+                    const topRate = ((s.ranks[1] / s.games) * 100).toFixed(1);
+                    const rentaiRate = (((s.ranks[1] + s.ranks[2]) / s.games) * 100).toFixed(1);
+                    const lastRate = ((s.ranks[4] / s.games) * 100).toFixed(1);
+                    const avgRank = ((s.ranks[1]*1 + s.ranks[2]*2 + s.ranks[3]*3 + s.ranks[4]*4) / s.games).toFixed(2);
+
+                    list.innerHTML += `
+                        <div class="bg-white p-4 rounded-2xl border shadow-sm space-y-2">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <div class="font-black text-lg">${name}</div>
+                                <div class="text-xl font-black ${s.income>=0?'text-emerald-500':'text-red-500'}">${Math.round(s.income).toLocaleString()}円</div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1 text-[10px] font-bold text-center text-slate-500">
+                                <div class="bg-slate-50 p-1 rounded">1位: ${s.ranks[1]}回</div>
+                                <div class="bg-slate-50 p-1 rounded">2位: ${s.ranks[2]}回</div>
+                                <div class="bg-slate-50 p-1 rounded">3位: ${s.ranks[3]}回</div>
+                                <div class="bg-slate-50 p-1 rounded">4位: ${s.ranks[4]}回</div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 pt-1">
+                                <div class="space-y-1 text-[10px] font-bold">
+                                    <div class="flex justify-between text-slate-400"><span>総対局数</span><span class="text-slate-700">${s.games}戦</span></div>
+                                    <div class="flex justify-between text-slate-400"><span>トップ率</span><span class="text-slate-700">${topRate}%</span></div>
+                                    <div class="flex justify-between text-slate-400"><span>合計得点</span><span class="text-slate-700">${s.points.toFixed(1)}pt</span></div>
+                                </div>
+                                <div class="space-y-1 border-l pl-4 text-[10px] font-bold">
+                                    <div class="flex justify-between text-slate-400"><span>平均順位</span><span class="text-slate-700">${avgRank}</span></div>
+                                    <div class="flex justify-between text-slate-400"><span>連対率</span><span class="text-slate-700">${rentaiRate}%</span></div>
+                                    <div class="flex justify-between text-slate-400"><span>ラス率</span><span class="text-slate-700">${lastRate}%</span></div>
+                                </div>
+                            </div>
+                        </div>`;
                 });
                 if (sorted.length) this.drawChart(sorted);
             },
 
             drawChart(data) {
-                const ctx = document.getElementById('trendChart').getContext('2d'); if (this.chart) this.chart.destroy();
-                this.chart = new Chart(ctx, { type: 'bar', data: { labels: data.map(d=>d[0]), datasets: [{ data: data.map(d=>d[1]), backgroundColor: data.map(d=>d[1]>=0?'#10b981':'#ef4444'), borderRadius: 8 }] }, options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { display: false } } } } });
+                const ctx = document.getElementById('trendChart').getContext('2d'); 
+                if (this.chart) this.chart.destroy();
+                this.chart = new Chart(ctx, { 
+                    type: 'bar', 
+                    data: { 
+                        labels: data.map(d=>d[0]), 
+                        datasets: [{ 
+                            data: data.map(d=>d[1].income), 
+                            backgroundColor: data.map(d=>d[1].income>=0?'#10b981':'#ef4444'), 
+                            borderRadius: 8 
+                        }] 
+                    }, 
+                    options: { 
+                        indexAxis: 'y', 
+                        plugins: { legend: { display: false } }, 
+                        scales: { 
+                            x: { grid: { display: false } }, 
+                            y: { grid: { display: false } } 
+                        } 
+                    } 
+                });
             },
 
-            closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+            openModal(id, initialText = "") {
+                const modal = document.getElementById(id);
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    if (id === 'modal-ai') document.getElementById('ai-content').innerText = initialText;
+                }
+            },
+            closeModal(id) { 
+                const modal = document.getElementById(id);
+                if (modal) modal.classList.add('hidden'); 
+            }
         };
         window.onload = () => app.init();
     </script>
