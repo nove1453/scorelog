@@ -11,25 +11,22 @@
         body { background-color: #f8fafc; color: #1e293b; font-family: sans-serif; overscroll-behavior: none; }
         .score-table th, .score-table td { border: 1px solid #e2e8f0; padding: 10px 4px; text-align: center; }
         .score-table th { background-color: #f1f5f9; font-size: 0.75rem; font-weight: 800; }
-        .score-table input { width: 100%; text-align: center; background: transparent; border: none; outline: none; font-size: 1.1rem; font-weight: 700; }
+        .score-input-cell { width: 100%; text-align: center; background: transparent; border: 2px solid transparent; border-radius: 6px; outline: none; font-size: 1.1rem; font-weight: 700; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .score-input-cell.active { border-color: #10b981; background-color: #f0fdf4; }
         .sticky-col { position: sticky; left: 0; background: white; z-index: 5; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* 数値の色分け */
-        .pos-val { color: #059669 !important; } /* プラス：深めのエメラルド */
-        .neg-val { color: #e11d48 !important; } /* マイナス：ローズ */
-
-        .tabs-container { display: flex; overflow-x: auto; gap: 4px; padding: 4px; background: #f1f5f9; border-radius: 12px; }
-        .tab-btn { flex: 0 0 auto; padding: 8px 12px; font-size: 11px; font-weight: 900; border-radius: 8px; transition: all 0.2s; white-space: nowrap; }
-        .tab-btn.active { background: white; color: #10b981; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .tab-btn.inactive { color: #94a3b8; }
-
+        .pos-val { color: #059669 !important; }
+        .neg-val { color: #e11d48 !important; }
+        .tab-btn { flex: 0 0 auto; padding: 8px 14px; font-size: 12px; font-weight: 900; border-radius: 10px; transition: all 0.2s; white-space: nowrap; border: 1px solid #e2e8f0; background: #f8fafc; color: #64748b; }
+        .tab-btn.active { background: #10b981; color: white; border-color: #10b981; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2); }
+        #custom-keypad { transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 24px 24px 0 0; }
+        #custom-keypad.open { transform: translateY(0); }
+        .key-btn { background: white; border-radius: 12px; font-weight: 900; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; height: 54px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .key-btn:active { background: #f1f5f9; transform: scale(0.95); }
+        .key-action { background: #f1f5f9; color: #64748b; }
+        .key-done { background: #10b981; color: white; }
         .member-sel.selected { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; }
-        canvas { max-width: 100%; }
-        
-        /* 自動入力セルのスタイル */
-        .auto-input { background-color: #f8fafc !important; color: #94a3b8; font-style: italic; }
     </style>
 </head>
 <body class="bg-slate-50 flex flex-col min-h-screen">
@@ -46,16 +43,19 @@
             </button>
         </header>
 
-        <main class="flex-1 overflow-y-auto no-scrollbar pb-24">
+        <main class="flex-1 overflow-y-auto no-scrollbar pb-32">
             <!-- 歓迎画面 -->
             <div id="view-welcome" class="flex flex-col items-center justify-center py-20 px-10 text-center space-y-6">
                 <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center"><i data-lucide="spade" class="w-10 h-10"></i></div>
-                <h2 class="text-2xl font-black italic">Welcome to ScoreLog</h2>
+                <h2 class="text-2xl font-black italic">ようこそ</h2>
                 <button onclick="app.showNewSetModal()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg">対局を開始する</button>
             </div>
 
             <!-- スコア入力画面 -->
             <div id="view-input" class="hidden">
+                <div id="view-mode-indicator" class="hidden bg-amber-50 border-b border-amber-100 p-2 text-center">
+                    <span class="text-[10px] font-black text-amber-600 uppercase tracking-widest italic">過去の記録を閲覧中</span>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full score-table border-collapse table-fixed min-w-[320px]">
                         <thead><tr id="player-headers"></tr></thead>
@@ -67,14 +67,14 @@
                             </tr>
                             <tr class="text-[10px] text-slate-400 font-bold italic">
                                 <td class="sticky-col">チップ</td>
-                                <td><input type="number" id="chip-0" oninput="app.calcAll()" value="0"></td>
-                                <td><input type="number" id="chip-1" oninput="app.calcAll()" value="0"></td>
-                                <td><input type="number" id="chip-2" oninput="app.calcAll()" value="0"></td>
-                                <td><input type="number" id="chip-3" oninput="app.calcAll()" value="0"></td>
+                                <td onclick="app.focusInput('chip', 0, 0)"><div id="chip-val-0" class="score-input-cell">0</div></td>
+                                <td onclick="app.focusInput('chip', 0, 1)"><div id="chip-val-1" class="score-input-cell">0</div></td>
+                                <td onclick="app.focusInput('chip', 0, 2)"><div id="chip-val-2" class="score-input-cell">0</div></td>
+                                <td onclick="app.focusInput('chip', 0, 3)"><div id="chip-val-3" class="score-input-cell">0</div></td>
                             </tr>
                             <tr class="text-[10px] text-slate-400 font-bold italic">
                                 <td class="sticky-col font-black text-[8px]">場代(合計)</td>
-                                <td colspan="4"><input type="number" id="manual-fee" oninput="app.calcAll()" placeholder="支払い合計" class="w-full font-black text-emerald-600"></td>
+                                <td colspan="4" onclick="app.focusInput('fee', 0, 0)"><div id="fee-val" class="score-input-cell text-emerald-600">0</div></td>
                             </tr>
                             <tr class="bg-slate-900 text-white font-black">
                                 <td class="sticky-col bg-slate-900">収支</td>
@@ -83,78 +83,100 @@
                         </tfoot>
                     </table>
                 </div>
-                <div class="p-4 space-y-3">
+                <div id="input-controls" class="p-4 space-y-3">
                     <button onclick="app.addRow()" class="w-full py-3 bg-slate-100 rounded-xl text-slate-600 font-bold">+ 半荘追加</button>
-                    <button id="save-set-btn" onclick="app.saveCurrentSet()" class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl">保存して終了</button>
+                    <button id="save-set-btn" onclick="app.saveCurrentSet()" class="w-full py-5 bg-emerald-500 text-white rounded-2xl font-black text-lg shadow-xl italic">保存して終了</button>
+                </div>
+                <div id="view-controls" class="hidden p-4">
+                    <button onclick="app.closeViewRecord()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl italic">記録を閉じる</button>
                 </div>
             </div>
 
             <!-- 統計画面 -->
             <div id="view-stats" class="hidden p-4 space-y-4">
                 <h2 class="text-xl font-black italic">成績統計</h2>
-                <div class="bg-slate-100 p-3 rounded-2xl space-y-2">
-                    <div class="flex items-center gap-2">
-                        <input type="date" id="stats-start-date" onchange="app.renderStats(app.currentStatMode)" class="flex-1 bg-white border-none rounded-lg p-2 text-xs font-bold">
-                        <span class="text-slate-400">〜</span>
-                        <input type="date" id="stats-end-date" onchange="app.renderStats(app.currentStatMode)" class="flex-1 bg-white border-none rounded-lg p-2 text-xs font-bold">
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="bg-white border rounded-3xl p-4 shadow-sm">
-                        <canvas id="trendChart" height="180"></canvas>
-                    </div>
-                    <div class="bg-white border rounded-3xl p-4 shadow-sm">
-                        <div id="comparison-title" class="text-[10px] font-black text-slate-400 mb-2 uppercase italic">Comparison</div>
-                        <canvas id="comparisonChart" height="160"></canvas>
-                    </div>
-                </div>
-
-                <div class="tabs-container no-scrollbar" id="stats-tabs"></div>
+                <div class="bg-white border rounded-3xl p-4 shadow-sm"><canvas id="trendChart" height="180"></canvas></div>
+                <div class="tabs-container no-scrollbar flex gap-2 overflow-x-auto pb-2" id="stats-tabs"></div>
                 <div id="player-stats-list" class="space-y-3"></div>
+            </div>
+
+            <!-- 分析画面 -->
+            <div id="view-analysis" class="hidden p-4 space-y-4">
+                <h2 class="text-xl font-black italic">相性分析 <span class="text-[10px] text-slate-400 font-bold not-italic">(最大4人)</span></h2>
+                <div class="bg-slate-100 p-2 rounded-2xl flex flex-wrap gap-2" id="analysis-chips"></div>
+                <div id="analysis-results" class="space-y-4 pt-4">
+                    <div id="analysis-placeholder" class="py-20 text-center text-slate-300 font-bold italic">メンバーを選択して分析開始</div>
+                </div>
             </div>
 
             <!-- メンバー/履歴 -->
             <div id="view-members" class="hidden p-4 space-y-4">
-                <div class="flex justify-between items-center font-black italic"><span>メンバー管理</span><button onclick="app.addMemberPrompt()" class="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full font-bold text-xs">+ 追加</button></div>
+                <div class="flex justify-between items-center font-black italic">
+                    <span>メンバー管理</span>
+                    <button onclick="app.addMemberPrompt()" class="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full font-bold text-xs">+ 追加</button>
+                </div>
                 <div id="member-list" class="space-y-2"></div>
+                <div class="mt-8 pt-6 border-t space-y-4">
+                    <h3 class="text-xs font-black text-slate-400 uppercase italic tracking-widest">データ管理</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="app.exportData()" class="flex items-center justify-center gap-2 py-3 bg-slate-100 rounded-xl text-[10px] font-black text-slate-600">
+                            バックアップ
+                        </button>
+                        <button onclick="app.importData()" class="flex items-center justify-center gap-2 py-3 bg-slate-100 rounded-xl text-[10px] font-black text-slate-600">
+                            データ復元
+                        </button>
+                    </div>
+                </div>
             </div>
+
             <div id="view-history" class="hidden p-4 space-y-4">
                 <h2 class="text-xl font-black italic">履歴</h2>
                 <div id="history-list" class="space-y-3"></div>
             </div>
-            <div id="view-analysis" class="hidden p-4 space-y-4">
-                <h2 class="text-xl font-black italic">相性分析</h2>
-                <div id="analysis-member-chips" class="flex flex-wrap gap-2"></div>
-                <div id="analysis-content" class="hidden space-y-4"></div>
-                <div id="analysis-placeholder" class="py-20 text-center text-slate-300 font-bold italic">メンバーを選択してください</div>
-            </div>
         </main>
 
-        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t flex justify-around items-center h-16 pb-safe z-30">
+        <!-- テンキー -->
+        <div id="custom-keypad" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-200 p-4 shadow-2xl z-50">
+            <div class="flex justify-between items-center mb-3 px-2">
+                <span id="keypad-title" class="font-black text-slate-500 text-xs italic uppercase">入力</span>
+                <span id="keypad-preview" class="text-xl font-black text-emerald-600">0</span>
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+                <button onclick="app.keyPress('7')" class="key-btn">7</button><button onclick="app.keyPress('8')" class="key-btn">8</button><button onclick="app.keyPress('9')" class="key-btn">9</button><button onclick="app.keyPress('back')" class="key-btn key-action"><i data-lucide="delete"></i></button>
+                <button onclick="app.keyPress('4')" class="key-btn">4</button><button onclick="app.keyPress('5')" class="key-btn">5</button><button onclick="app.keyPress('6')" class="key-btn">6</button><button onclick="app.keyPress('-')" class="key-btn key-action">+/-</button>
+                <button onclick="app.keyPress('1')" class="key-btn">1</button><button onclick="app.keyPress('2')" class="key-btn">2</button><button onclick="app.keyPress('3')" class="key-btn">3</button><button onclick="app.keyPress('clear')" class="key-btn key-action">C</button>
+                <button onclick="app.keyPress('0')" class="key-btn">0</button><button onclick="app.keyPress('00')" class="key-btn text-sm">00</button><button onclick="app.keyPress('.')" class="key-btn">.</button><button onclick="app.closeKeypad()" class="key-btn key-done"><i data-lucide="check"></i></button>
+            </div>
+        </div>
+
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t flex justify-around items-center h-16 z-30">
             <button onclick="app.setTab('input')" id="nav-input" class="flex flex-col items-center text-slate-400"><i data-lucide="edit-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">対局</span></button>
-            <button onclick="app.setTab('analysis')" id="nav-analysis" class="flex flex-col items-center text-slate-400"><i data-lucide="search" class="w-5 h-5"></i><span class="text-[10px] font-bold">分析</span></button>
+            <button onclick="app.setTab('analysis')" id="nav-analysis" class="flex flex-col items-center text-slate-400"><i data-lucide="target" class="w-5 h-5"></i><span class="text-[10px] font-bold">分析</span></button>
             <button onclick="app.setTab('stats')" id="nav-stats" class="flex flex-col items-center text-slate-400"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">成績</span></button>
             <button onclick="app.setTab('members')" id="nav-members" class="flex flex-col items-center text-slate-400"><i data-lucide="users" class="w-5 h-5"></i><span class="text-[10px] font-bold">メンバー</span></button>
             <button onclick="app.setTab('history')" id="nav-history" class="flex flex-col items-center text-slate-400"><i data-lucide="archive" class="w-5 h-5"></i><span class="text-[10px] font-bold">履歴</span></button>
         </nav>
 
-        <!-- 新規対局モーダル -->
         <div id="modal-new-set" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
             <div class="bg-white w-full rounded-3xl p-6 space-y-5 max-h-[90vh] flex flex-col">
-                <h3 class="text-xl font-black text-center italic">New Match</h3>
+                <h3 class="text-xl font-black text-center italic">新規対局作成</h3>
                 <div class="space-y-4 flex-1 overflow-y-auto no-scrollbar">
                     <div class="grid grid-cols-2 gap-3">
-                        <div><label class="text-[10px] font-black text-slate-400 uppercase">人数</label>
-                        <select id="setup-count" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold" onchange="app.refreshMemberSelectUI()"><option value="4">4人打ち</option><option value="3">3人打ち</option></select></div>
-                        <div><label class="text-[10px] font-black text-slate-400 uppercase">レート</label>
-                        <input type="number" id="setup-rate" value="50" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold"></div>
+                        <select id="setup-count" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold" onchange="app.refreshMemberSelectUI()"><option value="4">4人打ち</option><option value="3">3人打ち</option></select>
+                        <div class="space-y-1">
+                            <label class="text-[9px] font-black text-slate-400 block px-1">スコアレード(円/1pt)</label>
+                            <input type="number" id="setup-rate" value="50" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold">
+                        </div>
                     </div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase">チップ (1枚)</label>
-                    <input type="number" id="setup-chip-rate" value="100" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold"></div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-[9px] font-black text-slate-400 block px-1">チップレート(円/枚)</label>
+                            <input type="number" id="setup-chip-rate" value="100" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold">
+                        </div>
+                    </div>
                     <div id="member-select-grid" class="grid grid-cols-2 gap-2"></div>
                 </div>
-                <button id="modal-start-btn" onclick="app.startSet()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg">開始する</button>
+                <button onclick="app.startSet()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg italic uppercase tracking-wider">対局開始</button>
                 <button onclick="app.closeModal('modal-new-set')" class="w-full text-slate-400 text-[10px] font-bold">キャンセル</button>
             </div>
         </div>
@@ -162,331 +184,317 @@
 
     <script>
         const app = {
+            STORAGE_KEY: 'scorelog_v27_jp',
             db: { members: [], history: [], currentSet: null },
-            currentStatMode: 'income', trendChart: null, comparisonChart: null,
+            activeField: null,
+            currentValue: "0",
+            viewingRecord: null,
+            selectedAnalysisMembers: [],
+            currentStatMode: 'income',
             colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'],
-            
-            init() {
-                const saved = localStorage.getItem('scorelog_v23');
-                if (saved) {
-                    try { 
-                        this.db = JSON.parse(saved); 
-                        // 不正なデータのクリーンアップ
-                        if (!Array.isArray(this.db.members)) this.db.members = [];
-                        if (!Array.isArray(this.db.history)) this.db.history = [];
-                    } catch(e) {
-                        console.error("Data load error", e);
-                    }
-                }
-                
-                if (!this.db.members || this.db.members.length === 0) {
-                    this.db.members = [{id:1, name:'かなさ'}, {id:2, name:'しぶや'}, {id:3, name:'高石さん'}, {id:4, name:'たくろう'}];
-                }
 
-                // 起動時の初期画面判定
-                if (this.db.currentSet && this.db.currentSet.players) {
-                    this.setTab('input');
-                } else {
-                    this.db.currentSet = null; // 安全のためにnullにリセット
-                    this.setTab('welcome');
-                }
+            init() {
+                const saved = localStorage.getItem(this.STORAGE_KEY);
+                if (saved) { try { this.db = JSON.parse(saved); } catch(e) {} }
+                if (!this.db.members?.length) this.db.members = [{id:1,name:'かなさ'},{id:2,name:'しぶや'},{id:3,name:'高石さん'},{id:4,name:'たくろう'}];
+                this.setTab(this.db.currentSet ? 'input' : 'welcome');
                 lucide.createIcons();
             },
-            save() { localStorage.setItem('scorelog_v23', JSON.stringify(this.db)); },
-            
+
+            save() { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.db)); },
+
             setTab(tab) {
-                // データの整合性チェック
-                if (tab === 'input' && (!this.db.currentSet || !this.db.currentSet.players)) {
-                    tab = 'welcome';
-                }
-
-                ['input', 'members', 'stats', 'history', 'welcome', 'analysis'].forEach(v => {
-                    const el = document.getElementById(`view-${v}`);
-                    if (el) el.classList.add('hidden');
-                });
-
-                const targetEl = document.getElementById(`view-${tab}`);
-                if (targetEl) targetEl.classList.remove('hidden');
+                this.viewingRecord = null;
+                ['input', 'members', 'stats', 'history', 'welcome', 'analysis'].forEach(v => document.getElementById(`view-${v}`)?.classList.add('hidden'));
+                document.getElementById(`view-${tab}`)?.classList.remove('hidden');
+                document.querySelectorAll('nav button').forEach(b => b.classList.replace('text-emerald-500', 'text-slate-400'));
+                document.getElementById(`nav-${tab}`)?.classList.replace('text-slate-400', 'text-emerald-500');
 
                 if (tab === 'input') this.renderInputTable();
                 if (tab === 'stats') this.renderStats(this.currentStatMode);
                 if (tab === 'members') this.renderMembers();
                 if (tab === 'history') this.renderHistory();
-                
-                // ナビゲーションのアイコン色更新
-                document.querySelectorAll('nav button').forEach(btn => btn.classList.replace('text-emerald-500', 'text-slate-400'));
-                const activeNav = document.getElementById(`nav-${tab}`);
-                if (activeNav) activeNav.classList.replace('text-slate-400', 'text-emerald-500');
-
+                if (tab === 'analysis') this.renderAnalysisInit();
                 lucide.createIcons();
+                this.closeKeypad();
             },
 
-            // スコア入力と自動補完
-            renderInputTable() {
-                const s = this.db.currentSet; 
-                if (!s || !s.players) return;
-
-                const h = document.getElementById('player-headers'); 
-                h.innerHTML = '<th class="w-10 sticky-col italic text-[9px]">ROUND</th>';
-                s.players.forEach((p, i) => {
-                    const isAuto = i === s.playerCount - 1;
-                    h.innerHTML += `<th class="${isAuto ? 'bg-slate-50 text-slate-400 font-normal' : ''}">${p.name}${isAuto?'<br><span class="text-[8px]">(AUTO)</span>':''}</th>`;
-                });
-                
-                const rows = document.getElementById('score-rows'); 
-                rows.innerHTML = '';
-                const rowCount = s.players[0].scores.length;
-                
-                for (let i = 0; i < rowCount; i++) {
-                    let html = `<td class="sticky-col text-slate-300 font-bold text-xs">${i+1}</td>`;
-                    s.players.forEach((p, pi) => {
-                        const val = p.scores[i];
-                        const isAuto = pi === s.playerCount - 1;
-                        const colorClass = val > 0 ? 'pos-val' : (val < 0 ? 'neg-val' : '');
-                        html += `<td><input type="number" step="0.1" value="${val}" class="${colorClass} ${isAuto?'auto-input':''}" ${isAuto?'readonly':''} oninput="app.updateScore(${i}, ${pi}, this.value)"></td>`;
-                    });
-                    const tr = document.createElement('tr'); 
-                    tr.innerHTML = html; 
-                    rows.appendChild(tr);
-                }
-                this.calcAll();
-            },
-            
-            updateScore(ri, pi, v) {
+            focusInput(type, ri, pi) {
+                if (this.viewingRecord) return;
+                this.activeField = { type, ri, pi };
                 const s = this.db.currentSet;
-                if (!s || !s.players) return;
-
-                const lastIdx = s.playerCount - 1;
-                s.players[pi].scores[ri] = parseFloat(v) || 0;
-
-                // 最後の一人を自動計算 (トータル0にする)
-                let sumOthers = 0;
-                for (let i = 0; i < lastIdx; i++) {
-                    sumOthers += s.players[i].scores[ri];
-                }
-                s.players[lastIdx].scores[ri] = -Math.round(sumOthers * 10) / 10;
+                if (type === 'score') this.currentValue = String(s.players[pi].scores[ri]);
+                else if (type === 'chip') this.currentValue = String(s.players[pi].chip || 0);
+                else if (type === 'fee') this.currentValue = String(s.fee || 0);
                 
-                this.renderInputTable(); 
+                document.querySelectorAll('.score-input-cell').forEach(el => el.classList.remove('active'));
+                let tid = type === 'score' ? `score-val-${ri}-${pi}` : (type === 'chip' ? `chip-val-${pi}` : 'fee-val');
+                document.getElementById(tid)?.classList.add('active');
+                
+                document.getElementById('keypad-preview').innerText = this.currentValue;
+                document.getElementById('keypad-title').innerText = `${type === 'score' ? 'スコア' : (type === 'chip' ? 'チップ' : '場代')} - ${type === 'fee' ? '合計' : s.players[pi].name}`;
+                document.getElementById('custom-keypad').classList.add('open');
+            },
+
+            applyValue(v) {
+                const s = this.db.currentSet; if (!s) return;
+                const n = parseFloat(v) || 0;
+                const { type, ri, pi } = this.activeField;
+                if (type === 'score') s.players[pi].scores[ri] = n;
+                else if (type === 'chip') s.players[pi].chip = n;
+                else if (type === 'fee') s.fee = n;
+                this.renderInputTable();
                 this.save();
             },
 
-            calcAll() {
-                const s = this.db.currentSet; 
-                if (!s || !s.players) return;
+            renderInputTable() {
+                const s = this.viewingRecord || this.db.currentSet;
+                if (!s) return;
+                const isView = !!this.viewingRecord;
+                document.getElementById('view-mode-indicator').classList.toggle('hidden', !isView);
+                document.getElementById('input-controls').classList.toggle('hidden', isView);
+                document.getElementById('view-controls').classList.toggle('hidden', !isView);
 
-                const feeTotal = parseFloat(document.getElementById('manual-fee').value) || 0;
-                s.players.forEach((p, pi) => {
-                    const pts = p.scores.reduce((a,b)=>a+b,0);
-                    const chipVal = parseFloat(document.getElementById(`chip-${pi}`).value) || 0;
-                    const inc = Math.round(pts * s.rate) + (chipVal * s.chipRate) - (feeTotal / s.playerCount);
-                    
-                    const totalEl = document.getElementById(`total-${pi}`);
-                    if (totalEl) {
-                        totalEl.innerText = pts.toFixed(1);
-                        totalEl.className = pts > 0 ? 'pos-val' : (pts < 0 ? 'neg-val' : '');
-                    }
-
-                    const incEl = document.getElementById(`income-${pi}`);
-                    if (incEl) {
-                        incEl.innerText = Math.round(inc).toLocaleString() + "円";
-                        incEl.className = inc > 0 ? 'pos-val' : (inc < 0 ? 'neg-val' : '');
-                    }
-                });
+                const h = document.getElementById('player-headers'); h.innerHTML = '<th class="w-10 sticky-col italic text-[9px]">半荘</th>';
+                s.players.forEach((p, i) => h.innerHTML += `<th>${p.name}</th>`);
+                const rows = document.getElementById('score-rows'); rows.innerHTML = '';
+                for (let i = 0; i < s.players[0].scores.length; i++) {
+                    let html = `<td class="sticky-col text-slate-300 font-bold text-xs">${i+1}</td>`;
+                    s.players.forEach((p, pi) => {
+                        const val = p.scores[i];
+                        html += `<td onclick="${isView ? '' : `app.focusInput('score', ${i}, ${pi})`}"><div id="score-val-${i}-${pi}" class="score-input-cell ${val > 0 ? 'pos-val' : 'neg-val'}">${val}</div></td>`;
+                    });
+                    const tr = document.createElement('tr'); tr.innerHTML = html; rows.appendChild(tr);
+                }
+                this.calcAll();
             },
 
-            // 統計
+            calcAll() {
+                const s = this.viewingRecord || this.db.currentSet; if (!s) return;
+                s.players.forEach((p, pi) => {
+                    const pts = p.scores.reduce((a,b)=>a+b,0);
+                    const chipVal = (p.chip||0) * (s.chipRate||100);
+                    const scoreVal = pts * s.rate;
+                    const inc = scoreVal + chipVal - ((s.fee||0) / s.playerCount);
+                    document.getElementById(`total-${pi}`).innerText = pts.toFixed(1);
+                    document.getElementById(`income-${pi}`).innerText = Math.round(inc).toLocaleString() + "円";
+                    document.getElementById(`income-${pi}`).className = inc >= 0 ? 'pos-val' : 'neg-val';
+                    document.getElementById(`chip-val-${pi}`).innerText = p.chip || 0;
+                });
+                document.getElementById('fee-val').innerText = s.fee || 0;
+            },
+
             renderStats(mode) {
                 this.currentStatMode = mode;
-                const start = document.getElementById('stats-start-date').value;
-                const end = document.getElementById('stats-end-date').value;
-                
-                const tabs = [
-                    {k:'income', l:'収支'}, {k:'top_rate', l:'トップ率'}, 
-                    {k:'rentai_rate', l:'連対率'}, {k:'avg_rank', l:'平均順位'}, {k:'last_rate', l:'ラス率'}
-                ];
                 const tc = document.getElementById('stats-tabs'); tc.innerHTML = '';
+                const tabs = [
+                    {k:'income', l:'収支(場代除)'}, {k:'pts', l:'スコア(素点)'}, {k:'pts_chip', l:'スコア(チップ込)'},
+                    {k:'top', l:'トップ率'}, {k:'rentai', l:'連対率'}, {k:'avg', l:'平均順位'}, {k:'last', l:'ラス率'}
+                ];
                 tabs.forEach(t => {
                     const b = document.createElement('button'); b.className = `tab-btn ${mode === t.k ? 'active' : 'inactive'}`;
                     b.innerText = t.l; b.onclick = () => this.renderStats(t.k); tc.appendChild(b);
                 });
 
-                const filteredHistory = this.db.history.filter(h => {
-                    const d = h.date.split('T')[0];
-                    return (!start || d >= start) && (!end || d <= end);
-                }).reverse();
-
                 const stats = {};
-                const playerCumlative = {};
-
-                filteredHistory.forEach(h => {
+                this.db.history.forEach(h => {
                     h.players.forEach(p => {
-                        if (!stats[p.name]) {
-                            stats[p.name] = { income:0, games:0, rSum:0, r1:0, r2:0, r4:0 };
-                            playerCumlative[p.name] = [0];
-                        }
-                    });
-
-                    const hanchanCount = h.players[0].scores.length;
-                    for(let i=0; i < hanchanCount; i++) {
-                        const gameResult = h.players.map(p => ({ name: p.name, score: p.scores[i] }));
-                        gameResult.sort((a,b) => b.score - a.score);
-                        
-                        gameResult.forEach((res, idx) => {
-                            const s = stats[res.name];
-                            if(!s) return;
-                            const rank = idx + 1;
+                        if (!stats[p.name]) stats[p.name] = { income:0, pts:0, pts_chip:0, games:0, r1:0, r2:0, r4:0, rSum:0 };
+                        const s = stats[p.name];
+                        // 収支（場代除）は p.income に (h.fee / h.playerCount) を足し戻す
+                        s.income += (p.income + (h.fee / h.playerCount));
+                        p.scores.forEach((sc, idx) => {
                             s.games++;
+                            s.pts += sc;
+                            // チップ分をpt換算: (チップ枚数 * チップレート) / スコアレート
+                            const chipPt = (p.chip || 0) * (h.chipRate / h.rate) / p.scores.length;
+                            s.pts_chip += sc + chipPt;
+                            
+                            const ranks = h.players.map(pl => pl.scores[idx]).sort((a,b)=>b-a);
+                            const rank = ranks.indexOf(sc) + 1;
                             s.rSum += rank;
-                            if(rank === 1) s.r1++;
-                            if(rank === 2) s.r2++;
-                            if(rank === (h.playerCount === 4 ? 4 : 3)) s.r4++;
+                            if (rank === 1) s.r1++;
+                            if (rank === 2) s.r2++;
+                            if (rank === 4) s.r4++;
                         });
-                    }
-
-                    h.players.forEach(p => {
-                        if(stats[p.name]) {
-                            stats[p.name].income += p.income;
-                            playerCumlative[p.name].push(stats[p.name].income);
-                        }
                     });
                 });
-
-                this.updateCharts(playerCumlative, filteredHistory.length, stats, mode);
 
                 const list = document.getElementById('player-stats-list'); list.innerHTML = '';
                 Object.entries(stats).sort((a,b) => {
-                    if (mode === 'avg_rank' || mode === 'last_rate') return (a[1].rSum/a[1].games) - (b[1].rSum/b[1].games);
-                    return b[1].income - a[1].income;
+                    if(mode === 'income') return b[1].income - a[1].income;
+                    if(mode === 'pts') return b[1].pts - a[1].pts;
+                    if(mode === 'pts_chip') return b[1].pts_chip - a[1].pts_chip;
+                    if(mode === 'top') return (b[1].r1/b[1].games) - (a[1].r1/a[1].games);
+                    if(mode === 'rentai') return ((b[1].r1+b[1].r2)/b[1].games) - ((a[1].r1+a[1].r2)/a[1].games);
+                    if(mode === 'avg') return (a[1].rSum/a[1].games) - (b[1].rSum/b[1].games);
+                    if(mode === 'last') return (b[1].r4/b[1].games) - (a[1].r4/a[1].games);
                 }).forEach(([name, s]) => {
-                    let val = '';
-                    if (mode === 'income') val = s.income.toLocaleString()+'円';
-                    else if (mode === 'top_rate') val = (s.r1/s.games*100).toFixed(1)+'%';
-                    else if (mode === 'rentai_rate') val = ((s.r1+s.r2)/s.games*100).toFixed(1)+'%';
-                    else if (mode === 'avg_rank') val = (s.rSum/s.games).toFixed(2);
-                    else if (mode === 'last_rate') val = (s.r4/s.games*100).toFixed(1)+'%';
-                    
+                    let val = "";
+                    if(mode==='income') val = Math.round(s.income).toLocaleString() + "円";
+                    else if(mode==='pts') val = s.pts.toFixed(1) + "pt";
+                    else if(mode==='pts_chip') val = s.pts_chip.toFixed(1) + "pt";
+                    else if(mode==='top') val = (s.r1/s.games*100).toFixed(1) + "%";
+                    else if(mode==='rentai') val = ((s.r1+s.r2)/s.games*100).toFixed(1) + "%";
+                    else if(mode==='avg') val = (s.rSum/s.games).toFixed(2);
+                    else if(mode==='last') val = (s.r4/s.games*100).toFixed(1) + "%";
+
                     list.innerHTML += `<div class="bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm">
-                        <div><div class="font-black italic">${name}</div><div class="text-[9px] text-slate-400 font-bold">${s.games}半荘</div></div>
-                        <div class="font-black ${val.includes('-') || (mode === 'avg_rank' && parseFloat(val) > 2.5) ? 'neg-val' : 'pos-val'}">${val}</div>
+                        <div class="font-black italic">${name} <span class="text-[9px] text-slate-300 not-italic ml-2">${s.games}局</span></div>
+                        <div class="font-black ${val.includes('-') || (mode==='avg' && parseFloat(val) > 2.5) || (mode==='last' && parseFloat(val) > 25) ? 'neg-val' : 'pos-val'}">${val}</div>
                     </div>`;
                 });
+                this.updateTrendChart();
             },
 
-            updateCharts(playerCumlative, historyCount, stats, mode) {
-                const trendCtx = document.getElementById('trendChart').getContext('2d');
+            updateTrendChart() {
+                const ctx = document.getElementById('trendChart').getContext('2d');
                 if (this.trendChart) this.trendChart.destroy();
-                this.trendChart = new Chart(trendCtx, {
-                    type: 'line',
-                    data: {
-                        labels: Array.from({length: historyCount + 1}, (_, i) => i),
-                        datasets: Object.entries(playerCumlative).map(([name, data], i) => ({
-                            label: name, data: data, borderColor: this.colors[i % this.colors.length], tension: 0.3, borderWidth: 2, pointRadius: 1
-                        }))
-                    },
-                    options: { 
-                        responsive: true,
-                        plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9, weight: 'bold' } } } },
-                        scales: { y: { ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } }
-                    }
+                const datasets = this.db.members.map((m, i) => {
+                    let bal = 0;
+                    const data = [0, ...this.db.history.slice().reverse().map(h => {
+                        const p = h.players.find(pl => pl.name === m.name);
+                        bal += p ? p.income : 0;
+                        return bal;
+                    })];
+                    return { label: m.name, data, borderColor: this.colors[i % this.colors.length], tension: 0.3, pointRadius: 0 };
                 });
+                this.trendChart = new Chart(ctx, { type: 'line', data: { labels: Array(datasets[0]?.data.length || 0).fill(''), datasets }, options: { plugins: { legend: { display: false } }, scales: { x: { display: false } } } });
+            },
 
-                const compCtx = document.getElementById('comparisonChart').getContext('2d');
-                if (this.comparisonChart) this.comparisonChart.destroy();
-                const labels = Object.keys(stats);
-                const dataValues = labels.map(name => {
-                    const s = stats[name];
-                    if (mode === 'top_rate') return (s.r1/s.games*100);
-                    if (mode === 'avg_rank') return (s.rSum/s.games);
-                    if (mode === 'last_rate') return (s.r4/s.games*100);
-                    return s.income;
-                });
-                this.comparisonChart = new Chart(compCtx, {
-                    type: 'bar',
-                    data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: this.colors.map(c => c + 'CC'), borderRadius: 6, barThickness: 15 }] },
-                    options: { 
-                        indexAxis: 'y', responsive: true, plugins: { legend: { display: false } },
-                        scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: 10, weight: 'bold' } } } }
+            runAnalysis() {
+                const results = document.getElementById('analysis-results');
+                if (this.selectedAnalysisMembers.length === 0) { results.innerHTML = `<div class="py-20 text-center text-slate-300 font-bold italic">メンバーを選択して分析開始</div>`; return; }
+                results.innerHTML = `<h3 class="font-black text-sm italic text-slate-400 uppercase tracking-widest">分析結果</h3>`;
+                this.selectedAnalysisMembers.forEach(target => {
+                    const stats = {};
+                    this.db.history.forEach(h => {
+                        const pTarget = h.players.find(p => p.name === target);
+                        if (!pTarget) return;
+                        h.players.forEach(opp => {
+                            if (opp.name === target || !this.selectedAnalysisMembers.includes(opp.name)) return;
+                            if (!stats[opp.name]) stats[opp.name] = { games: 0, win: 0, diff: 0 };
+                            stats[opp.name].games += pTarget.scores.length;
+                            stats[opp.name].diff += (pTarget.income - opp.income);
+                            pTarget.scores.forEach((ts, idx) => { if (ts > opp.scores[idx]) stats[opp.name].win++; });
+                        });
+                    });
+                    if (Object.keys(stats).length > 0) {
+                        let html = `<div class="space-y-2 mb-6"><div class="text-[10px] font-black text-emerald-600 italic bg-emerald-50 px-2 py-1 rounded inline-block">${target} から見た相性</div>`;
+                        Object.entries(stats).forEach(([name, data]) => {
+                            html += `<div class="bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center">
+                                <div><div class="font-black italic">${name}</div><div class="text-[9px] text-slate-400 font-bold">${data.games}局対戦</div></div>
+                                <div class="text-right"><div class="font-black ${data.diff >= 0 ? 'pos-val' : 'neg-val'}">${data.diff > 0 ? '+' : ''}${Math.round(data.diff).toLocaleString()}円</div><div class="text-[10px] font-bold text-slate-400">勝率 ${(data.win/data.games*100).toFixed(1)}%</div></div>
+                            </div>`;
+                        });
+                        results.innerHTML += html + `</div>`;
                     }
                 });
             },
 
-            addRow() { 
-                if (this.db.currentSet && this.db.currentSet.players) {
-                    this.db.currentSet.players.forEach(p => p.scores.push(0)); 
-                    this.renderInputTable(); 
-                } else {
-                    this.showNewSetModal();
+            renderAnalysisInit() {
+                const container = document.getElementById('analysis-chips'); container.innerHTML = '';
+                this.db.members.forEach(m => {
+                    const isSel = this.selectedAnalysisMembers.includes(m.name);
+                    const btn = document.createElement('button');
+                    btn.className = `px-4 py-2 rounded-full border text-xs font-bold transition-all ${isSel ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600'}`;
+                    btn.innerText = m.name; btn.onclick = () => {
+                        if (isSel) this.selectedAnalysisMembers = this.selectedAnalysisMembers.filter(n => n !== m.name);
+                        else if (this.selectedAnalysisMembers.length < 4) this.selectedAnalysisMembers.push(m.name);
+                        this.renderAnalysisInit(); this.runAnalysis();
+                    };
+                    container.appendChild(btn);
+                });
+            },
+
+            saveCurrentSet() {
+                if(confirm("この対局結果を保存して終了しますか？")) {
+                    const s = this.db.currentSet;
+                    s.players.forEach(p => {
+                        const pts = p.scores.reduce((a,b)=>a+b,0);
+                        p.income = (pts * s.rate) + ((p.chip||0) * s.chipRate) - (s.fee / s.playerCount);
+                    });
+                    this.db.history.unshift(JSON.parse(JSON.stringify(s)));
+                    this.db.currentSet = null; this.save(); this.setTab('history');
                 }
             },
-            saveCurrentSet() {
-                if (!this.db.currentSet) return;
-                if (!confirm("保存して終了しますか？")) return;
-                const set = JSON.parse(JSON.stringify(this.db.currentSet));
-                const feeTotal = parseFloat(document.getElementById('manual-fee').value) || 0;
-                set.players.forEach((p, pi) => {
-                    const chipVal = parseFloat(document.getElementById(`chip-${pi}`).value) || 0;
-                    p.chip = chipVal;
-                    p.totalScore = p.scores.reduce((a,b)=>a+b,0);
-                    p.income = Math.round(p.totalScore * set.rate) + (chipVal * set.chipRate) - (feeTotal / set.playerCount);
-                });
-                this.db.history.unshift(set); 
-                this.db.currentSet = null; 
-                this.save(); 
-                this.setTab('history');
-            },
-            showNewSetModal() { 
-                this.refreshMemberSelectUI(); 
-                this.openModal('modal-new-set'); 
-            },
-            refreshMemberSelectUI() {
-                const grid = document.getElementById('member-select-grid'); 
-                grid.innerHTML = '';
-                this.db.members.forEach(m => {
-                    const btn = document.createElement('button');
-                    btn.className = 'member-sel border p-3 rounded-xl text-xs font-bold bg-slate-50 transition-all';
-                    btn.innerText = m.name; btn.onclick = () => { btn.classList.toggle('selected'); };
-                    grid.appendChild(btn);
-                });
-            },
+
             startSet() {
                 const sel = Array.from(document.querySelectorAll('.member-sel.selected')).map(s => ({ name: s.innerText, scores: [0], chip: 0 }));
-                const required = parseInt(document.getElementById('setup-count').value);
-                if (sel.length !== required) return alert(`${required}人選択してください`);
-                const rate = parseInt(document.getElementById('setup-rate').value) || 50;
-                const chipRate = parseInt(document.getElementById('setup-chip-rate').value) || 100;
+                if (sel.length < 3) return alert("3人以上選択してください");
                 this.db.currentSet = { 
-                    id: Date.now(), 
                     date: new Date().toISOString(), 
                     playerCount: sel.length, 
-                    rate: rate, 
-                    chipRate: chipRate, 
-                    players: sel 
+                    rate: parseInt(document.getElementById('setup-rate').value)||50, 
+                    chipRate: parseInt(document.getElementById('setup-chip-rate').value)||100, 
+                    players: sel, 
+                    fee: 0 
                 };
-                this.save(); 
-                this.closeModal('modal-new-set'); 
-                this.setTab('input');
+                this.save(); this.closeModal('modal-new-set'); this.setTab('input');
+            },
+
+            renderHistory() {
+                const l = document.getElementById('history-list'); l.innerHTML = '';
+                this.db.history.forEach((h, i) => {
+                    let ps = ''; h.players.forEach(p => ps += `<div class="flex justify-between text-xs"><span>${p.name}</span><span class="font-bold ${p.income<0?'neg-val':'pos-val'}">${Math.round(p.income).toLocaleString()}円</span></div>`);
+                    const div = document.createElement('div');
+                    div.className = "bg-white p-4 rounded-2xl border shadow-sm active:scale-95 transition-all";
+                    div.onclick = () => { this.viewingRecord = JSON.parse(JSON.stringify(this.db.history[i])); this.setTab('input'); };
+                    div.innerHTML = `<div class="flex justify-between items-center border-b mb-2 pb-1 text-[9px] text-slate-300 font-black italic">
+                        <span>${new Date(h.date).toLocaleString()}</span>
+                        <button onclick="event.stopPropagation(); app.delHistory(${i})"><i data-lucide="trash-2" class="w-3 h-3 text-slate-200"></i></button>
+                    </div>${ps}`;
+                    l.appendChild(div);
+                });
+                lucide.createIcons();
+            },
+            keyPress(k) {
+                let v = this.currentValue;
+                if (k === 'back') v = v.length > 1 ? v.slice(0, -1) : "0";
+                else if (k === 'clear') v = "0";
+                else if (k === '-') v = v.startsWith('-') ? v.slice(1) : (v === "0" ? "-" : "-" + v);
+                else if (k === '.') { if(!v.includes('.')) v += '.'; }
+                else v = (v === "0") ? k : v + k;
+                this.currentValue = v; document.getElementById('keypad-preview').innerText = v; this.applyValue(v);
+            },
+            closeKeypad() { document.getElementById('custom-keypad').classList.remove('open'); document.querySelectorAll('.score-input-cell').forEach(el => el.classList.remove('active')); },
+            addRow() { if(this.db.currentSet) { this.db.currentSet.players.forEach(p => p.scores.push(0)); this.renderInputTable(); this.save(); } },
+            showNewSetModal() { this.refreshMemberSelectUI(); this.openModal('modal-new-set'); },
+            refreshMemberSelectUI() {
+                const g = document.getElementById('member-select-grid'); g.innerHTML = '';
+                this.db.members.forEach(m => {
+                    const b = document.createElement('button'); b.className = 'member-sel border p-3 rounded-xl text-xs font-bold bg-slate-50';
+                    b.innerText = m.name; b.onclick = () => b.classList.toggle('selected'); g.appendChild(b);
+                });
             },
             openModal(id) { document.getElementById(id).classList.remove('hidden'); },
             closeModal(id) { document.getElementById(id).classList.add('hidden'); },
             renderMembers() {
-                const list = document.getElementById('member-list'); list.innerHTML = '';
+                const l = document.getElementById('member-list'); l.innerHTML = '';
                 this.db.members.forEach(m => {
-                    list.innerHTML += `<div class="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm"><input type="text" value="${m.name}" onchange="app.editMemberName(${m.id}, this.value)" class="font-black bg-transparent outline-none flex-1"><button onclick="app.delMember(${m.id})" class="text-slate-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
+                    l.innerHTML += `<div class="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm"><span class="font-black italic">${m.name}</span><button onclick="app.delMember(${m.id})" class="text-slate-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
                 });
                 lucide.createIcons();
             },
-            renderHistory() {
-                const l = document.getElementById('history-list'); l.innerHTML = '';
-                this.db.history.forEach((h, i) => {
-                    let ps = ''; h.players.forEach(p => ps += `<div class="flex justify-between text-sm"><span>${p.name}</span><span class="font-bold ${p.income<0?'neg-val':'pos-val'}">${p.income.toLocaleString()}円</span></div>`);
-                    l.innerHTML += `<div class="bg-white p-4 rounded-2xl border shadow-sm relative"><div class="text-[9px] text-slate-300 font-bold border-b mb-2 italic">${new Date(h.date).toLocaleString()} (${h.players[0].scores.length} ROUNDS)</div><button onclick="app.delHistory(${i})" class="absolute top-4 right-4 text-slate-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>${ps}</div>`;
-                });
-                lucide.createIcons();
+            addMemberPrompt() { 
+                const n = prompt("新しいメンバーの名前を入力してください"); 
+                if(n && n.trim()) { 
+                    this.db.members.push({id:Date.now(), name:n.trim()}); 
+                    this.save(); 
+                    this.renderMembers(); 
+                } 
             },
-            addMemberPrompt() { const n = prompt("名前を入力"); if (n) { this.db.members.push({id:Date.now(), name:n}); this.save(); this.renderMembers(); } },
-            delHistory(i) { if (confirm("削除しますか？")) { this.db.history.splice(i,1); this.save(); this.renderHistory(); } },
-            editMemberName(id, name) { if (name) { this.db.members.find(m=>m.id===id).name = name; this.save(); } },
-            delMember(id) { if (confirm("削除しますか？")) { this.db.members = this.db.members.filter(m=>m.id!==id); this.save(); this.renderMembers(); } }
+            delMember(id) { 
+                if(confirm("このメンバーを削除しますか？\n(過去の対局履歴には名前が残ります)")) { 
+                    this.db.members = this.db.members.filter(m=>m.id!==id); 
+                    this.save(); 
+                    this.renderMembers(); 
+                } 
+            },
+            delHistory(i) { if(confirm("この対局履歴を完全に削除しますか？")) { this.db.history.splice(i,1); this.save(); this.renderHistory(); } },
+            exportData() { const s = JSON.stringify(this.db); const el = document.createElement('textarea'); el.value = s; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert("バックアップデータをクリップボードにコピーしました"); },
+            importData() { const s = prompt("バックアップデータをここに貼り付けてください"); if(s) { try { this.db = JSON.parse(s); this.save(); location.reload(); } catch(e) { alert("無効なデータ形式です"); } } },
+            closeViewRecord() { this.viewingRecord = null; this.setTab('history'); }
         };
         window.onload = () => app.init();
     </script>
