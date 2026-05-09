@@ -12,10 +12,7 @@
         .score-table th, .score-table td { border: 1px solid #e2e8f0; padding: 10px 4px; text-align: center; }
         .score-table th { background-color: #f1f5f9; font-size: 0.75rem; font-weight: 800; }
         .score-table input { width: 100%; text-align: center; background: transparent; border: none; outline: none; font-size: 1.1rem; font-weight: 600; }
-        .negative { color: #ef4444; }
-        .positive { color: #10b981; }
         .sticky-col { position: sticky; left: 0; background: white; z-index: 5; }
-        .row-error { background-color: #fff1f2 !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
@@ -27,12 +24,12 @@
         .member-sel-chip { transition: all 0.2s; border: 2px solid transparent; cursor: pointer; }
         .member-sel-chip.selected { background-color: #10b981; color: white; border-color: #059669; }
 
-        /* メンバー選択ボタンのスタイル */
         .member-sel.selected {
             background-color: #10b981 !important;
             color: white !important;
             border-color: #059669 !important;
         }
+        canvas { max-width: 100%; }
     </style>
 </head>
 <body class="bg-slate-50 flex flex-col min-h-screen">
@@ -52,16 +49,15 @@
         </header>
 
         <main class="flex-1 overflow-y-auto no-scrollbar pb-24">
+            <!-- ウェルカム -->
             <div id="view-welcome" class="flex flex-col items-center justify-center py-20 px-10 text-center space-y-6">
                 <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center"><i data-lucide="spade" class="w-10 h-10"></i></div>
                 <h2 class="text-2xl font-black">対局を始めましょう</h2>
                 <button onclick="app.showNewSetModal()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg">対局を開始する</button>
             </div>
 
+            <!-- 入力画面 -->
             <div id="view-input" class="hidden">
-                <div id="validation-msg" class="bg-rose-50 border-b border-rose-100 p-2 text-[10px] text-rose-700 font-bold hidden flex items-center gap-1 text-center justify-center">
-                    <i data-lucide="alert-circle" class="w-3 h-3"></i><span>各行の合計を 0 にしてください</span>
-                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full score-table border-collapse table-fixed min-w-[320px]">
                         <thead><tr id="player-headers"></tr></thead>
@@ -79,8 +75,8 @@
                                 <td class="hidden-3p"><input type="number" id="chip-3" oninput="app.calcAll()" value="0"></td>
                             </tr>
                             <tr class="text-[10px] text-slate-400 font-bold italic">
-                                <td class="sticky-col">場代</td>
-                                <td colspan="4"><input type="number" id="manual-fee" oninput="app.calcAll()" placeholder="合計支払い" class="w-full"></td>
+                                <td class="sticky-col font-black text-[8px]">場代(合計)</td>
+                                <td colspan="4"><input type="number" id="manual-fee" oninput="app.calcAll()" placeholder="支払い合計" class="w-full font-black text-emerald-600"></td>
                             </tr>
                             <tr class="bg-slate-900 text-white font-black">
                                 <td class="sticky-col bg-slate-900">収支</td>
@@ -91,22 +87,26 @@
                 </div>
                 <div class="p-4 space-y-3">
                     <button onclick="app.addRow()" class="w-full py-3 bg-slate-100 rounded-xl text-slate-600 font-bold">+ 半荘追加</button>
-                    <button id="save-set-btn" onclick="app.saveCurrentSet()" class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl disabled:opacity-20">保存して終了</button>
+                    <button id="save-set-btn" onclick="app.saveCurrentSet()" class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl">保存して終了</button>
                 </div>
             </div>
 
+            <!-- 相性分析 -->
             <div id="view-analysis" class="hidden p-4 space-y-4">
                 <h2 class="text-xl font-black italic">相性分析</h2>
                 <div id="analysis-member-chips" class="flex flex-wrap gap-2"></div>
                 <div id="analysis-content" class="hidden space-y-6">
-                    <div id="analysis-match-count" class="text-2xl font-black bg-emerald-900 text-white p-4 rounded-3xl text-center">0回</div>
+                    <div id="analysis-match-count" class="text-2xl font-black bg-emerald-900 text-white p-4 rounded-3xl text-center shadow-lg">0回</div>
                     <div id="analysis-vs-list" class="space-y-2"></div>
                 </div>
-                <div id="analysis-placeholder" class="py-20 text-center text-slate-300 font-bold">メンバーを2名以上選択</div>
+                <div id="analysis-placeholder" class="py-20 text-center text-slate-300 font-bold italic">メンバーを2名以上選択</div>
             </div>
 
+            <!-- 成績統計 -->
             <div id="view-stats" class="hidden p-4 space-y-4">
                 <h2 class="text-xl font-black italic">成績統計</h2>
+                
+                <!-- 期間フィルター -->
                 <div class="bg-slate-100 p-3 rounded-2xl space-y-2">
                     <div class="flex items-center gap-2">
                         <input type="date" id="stats-start-date" onchange="app.renderStats(app.currentStatMode)" class="flex-1 bg-white border-none rounded-lg p-2 text-xs font-bold outline-none">
@@ -115,21 +115,40 @@
                     </div>
                     <button onclick="app.resetStatsFilter()" class="w-full text-[9px] font-black text-emerald-600">期間リセット</button>
                 </div>
+
+                <!-- グラフエリア -->
+                <div class="space-y-4">
+                    <div class="bg-white border rounded-3xl p-4 shadow-sm">
+                        <div class="text-[10px] font-black text-slate-400 mb-2 uppercase">収支推移 (累計)</div>
+                        <canvas id="trendChart" height="180"></canvas>
+                    </div>
+                    <div id="stat-comparison-card" class="bg-white border rounded-3xl p-4 shadow-sm">
+                        <div id="comparison-title" class="text-[10px] font-black text-slate-400 mb-2 uppercase">項目比較</div>
+                        <canvas id="comparisonChart" height="160"></canvas>
+                    </div>
+                </div>
+
+                <!-- タブ切替 -->
                 <div class="tabs-container no-scrollbar" id="stats-tabs"></div>
+                
+                <!-- プレイヤー別リスト -->
                 <div id="player-stats-list" class="space-y-3"></div>
             </div>
 
+            <!-- メンバー管理 -->
             <div id="view-members" class="hidden p-4 space-y-4">
                 <div class="flex justify-between items-center font-black italic"><span>メンバー管理</span><button onclick="app.addMemberPrompt()" class="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full font-bold text-xs">+ 追加</button></div>
                 <div id="member-list" class="space-y-2"></div>
             </div>
 
+            <!-- 履歴 -->
             <div id="view-history" class="hidden p-4 space-y-4">
                 <h2 class="text-xl font-black italic">履歴</h2>
                 <div id="history-list" class="space-y-3"></div>
             </div>
         </main>
 
+        <!-- ナビ -->
         <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t flex justify-around items-center h-16 pb-safe z-30">
             <button onclick="app.setTab('input')" id="nav-input" class="flex flex-col items-center text-slate-400"><i data-lucide="edit-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">対局</span></button>
             <button onclick="app.setTab('analysis')" id="nav-analysis" class="flex flex-col items-center text-slate-400"><i data-lucide="search" class="w-5 h-5"></i><span class="text-[10px] font-bold">分析</span></button>
@@ -140,17 +159,27 @@
 
         <!-- 新規対局モーダル -->
         <div id="modal-new-set" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
-            <div class="bg-white w-full rounded-3xl p-6 space-y-5 max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="bg-white w-full rounded-3xl p-6 space-y-5 max-h-[95vh] flex flex-col shadow-2xl">
                 <h3 class="text-xl font-black text-center italic">新規対局設定</h3>
                 <div class="space-y-4 flex-1 overflow-y-auto no-scrollbar">
-                    <div class="space-y-1">
-                        <label class="text-[10px] font-black text-slate-400 uppercase">人数</label>
-                        <select id="setup-count" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold" onchange="app.refreshMemberSelectUI()">
-                            <option value="4">4人打ち</option>
-                            <option value="3">3人打ち</option>
-                        </select>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase">人数</label>
+                            <select id="setup-count" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold border-none" onchange="app.updateStartButtonState()">
+                                <option value="4">4人打ち</option>
+                                <option value="3">3人打ち</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase">レート (1pt何円)</label>
+                            <input type="number" id="setup-rate" value="50" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold border-none" placeholder="50">
+                        </div>
                     </div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase italic">メンバー選択 (<span id="selected-count">0</span>名選択中)</label>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase">チップレート (1枚何円)</label>
+                        <input type="number" id="setup-chip-rate" value="100" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold border-none" placeholder="100">
+                    </div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase italic">メンバー選択 (<span id="selected-count">0</span>名)</label>
                     <div id="member-select-grid" class="grid grid-cols-2 gap-2"></div>
                 </div>
                 <button id="modal-start-btn" onclick="app.startSet()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg disabled:opacity-30">開始する</button>
@@ -162,15 +191,20 @@
     <script>
         const app = {
             db: { members: [], history: [], currentSet: null },
-            currentStatMode: 'income', selectedAnalysisMembers: [],
+            currentStatMode: 'income',
+            selectedAnalysisMembers: [],
+            trendChart: null,
+            comparisonChart: null,
+            colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f43f5e'],
+            
             init() {
-                const saved = localStorage.getItem('scorelog_v19');
+                const saved = localStorage.getItem('scorelog_v21');
                 if (saved) try { this.db = JSON.parse(saved); } catch(e) {}
                 if (!this.db.members?.length) this.db.members = [{id:1, name:'かなさ'}, {id:2, name:'しぶや'}, {id:3, name:'高石さん'}, {id:4, name:'たくろう'}];
                 this.setTab(this.db.currentSet ? 'input' : 'welcome');
                 lucide.createIcons();
             },
-            save() { localStorage.setItem('scorelog_v19', JSON.stringify(this.db)); },
+            save() { localStorage.setItem('scorelog_v21', JSON.stringify(this.db)); },
             setTab(tab) {
                 ['input', 'members', 'stats', 'history', 'welcome', 'analysis'].forEach(v => document.getElementById(`view-${v}`)?.classList.add('hidden'));
                 ['input', 'members', 'stats', 'history', 'analysis'].forEach(n => {
@@ -195,6 +229,7 @@
             editMemberName(id, name) { if (name) { this.db.members.find(m=>m.id===id).name = name; this.save(); } },
             addMemberPrompt() { const n = prompt("名前を入力"); if (n) { this.db.members.push({id:Date.now(), name:n}); this.save(); this.renderMembers(); } },
             delMember(id) { if (confirm("削除しますか？")) { this.db.members = this.db.members.filter(m=>m.id!==id); this.save(); this.renderMembers(); } },
+            
             renderAnalysisUI() {
                 const container = document.getElementById('analysis-member-chips'); container.innerHTML = '';
                 this.db.members.forEach(m => {
@@ -224,9 +259,10 @@
                 });
                 const list = document.getElementById('analysis-vs-list'); list.innerHTML = '';
                 Object.entries(stats).sort((a,b)=>b[1].income - a[1].income).forEach(([name, s]) => {
-                    list.innerHTML += `<div class="bg-white p-4 rounded-2xl border flex justify-between items-center"><div><div class="font-black">${name}</div><div class="text-[10px] text-slate-400">平均順位: ${s.games>0?(s.totalRank/s.games).toFixed(2):'-'}</div></div><div class="font-black ${s.income<0?'text-red-500':'text-emerald-500'}">${s.income.toLocaleString()}円</div></div>`;
+                    list.innerHTML += `<div class="bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm"><div><div class="font-black italic">${name}</div><div class="text-[10px] text-slate-400">平均順位: ${s.games>0?(s.totalRank/s.games).toFixed(2):'-'}</div></div><div class="font-black ${s.income<0?'text-red-500':'text-emerald-500'}">${s.income.toLocaleString()}円</div></div>`;
                 });
             },
+
             renderStats(mode) {
                 this.currentStatMode = mode;
                 const start = document.getElementById('stats-start-date').value;
@@ -247,21 +283,27 @@
                     b.innerText = t.l; b.onclick = () => this.renderStats(t.k); tc.appendChild(b);
                 });
 
-                const stats = {};
-                this.db.history.filter(h => {
+                const filteredHistory = this.db.history.filter(h => {
                     const d = h.date.split('T')[0];
                     return (!start || d >= start) && (!end || d <= end);
-                }).forEach(h => {
+                }).reverse();
+
+                const stats = {};
+                const playerCumlative = {};
+
+                filteredHistory.forEach((h, idx) => {
                     const sorted = [...h.players].sort((a,b) => b.totalScore - a.totalScore);
                     const rate = h.rate || 50;
-                    const chipRate = h.chipRate || 5;
+                    const chipRate = h.chipRate || 100;
 
                     h.players.forEach(p => {
-                        if (!stats[p.name]) stats[p.name] = { income:0, pts:0, chipPts:0, g:0, rSum:0, r1:0, r2:0, r4:0 };
+                        if (!stats[p.name]) {
+                            stats[p.name] = { income:0, pts:0, chipPts:0, g:0, rSum:0, r1:0, r2:0, r4:0 };
+                            playerCumlative[p.name] = [0];
+                        }
                         const s = stats[p.name];
                         s.income += p.income;
                         s.pts += (p.totalScore || 0);
-                        // チップ分をスコア(pt)に変換して合算
                         const chipPt = (p.chip || 0) * (chipRate / rate);
                         s.chipPts += ((p.totalScore || 0) + chipPt);
                         s.g++;
@@ -270,16 +312,21 @@
                         if(r===1) s.r1++;
                         if(r===2) s.r2++;
                         if(r===4) s.r4++;
+
+                        playerCumlative[p.name].push(s.income);
                     });
                 });
 
+                // グラフの描画
+                this.updateCharts(playerCumlative, filteredHistory.length, stats, mode);
+
                 const list = document.getElementById('player-stats-list'); list.innerHTML = '';
-                const sorted = Object.entries(stats).sort((a,b) => {
+                const sortedPlayers = Object.entries(stats).sort((a,b) => {
                     if (mode === 'avg_rank' || mode === 'last_rate') return (a[1].rSum/a[1].g) - (b[1].rSum/b[1].g);
-                    return b[1].income - a[1].income; // デフォルトは収支順
+                    return b[1].income - a[1].income;
                 });
 
-                sorted.forEach(([name, s]) => {
+                sortedPlayers.forEach(([name, s]) => {
                     let val = '';
                     if (mode === 'income') val = s.income.toLocaleString()+'円';
                     else if (mode === 'score_no_chip') val = s.pts.toFixed(1)+'pt';
@@ -289,11 +336,109 @@
                     else if (mode === 'avg_rank') val = (s.rSum/s.g).toFixed(2);
                     else if (mode === 'last_rate') val = (s.r4/s.g*100).toFixed(1)+'%';
                     
-                    list.innerHTML += `<div class="bg-white p-4 rounded-2xl border flex justify-between items-center"><div class="font-black">${name}</div><div class="font-black">${val}</div></div>`;
+                    list.innerHTML += `<div class="bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm"><div class="font-black italic">${name}</div><div class="font-black text-emerald-600">${val}</div></div>`;
                 });
             },
-            resetStatsFilter() { document.getElementById('stats-start-date').value = ''; document.getElementById('stats-end-date').value = ''; this.renderStats(this.currentStatMode); },
-            showNewSetModal() { this.db.currentSet = null; this.refreshMemberSelectUI(); this.openModal('modal-new-set'); },
+
+            updateCharts(playerCumlative, historyCount, stats, mode) {
+                // 1. 収支推移グラフ (折れ線)
+                const trendCtx = document.getElementById('trendChart').getContext('2d');
+                if (this.trendChart) this.trendChart.destroy();
+                
+                const datasets = Object.entries(playerCumlative).map(([name, data], i) => ({
+                    label: name,
+                    data: data,
+                    borderColor: this.colors[i % this.colors.length],
+                    backgroundColor: this.colors[i % this.colors.length] + '15',
+                    tension: 0.3,
+                    borderWidth: 2.5,
+                    pointRadius: 1.5
+                }));
+
+                this.trendChart = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({length: historyCount + 1}, (_, i) => i),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { weight: 'bold', size: 9 } } } },
+                        scales: {
+                            y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 9, weight: 'bold' } } },
+                            x: { grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' } } }
+                        }
+                    }
+                });
+
+                // 2. 項目比較グラフ (横棒)
+                const compCtx = document.getElementById('comparisonChart').getContext('2d');
+                if (this.comparisonChart) this.comparisonChart.destroy();
+
+                const labels = [];
+                const dataValues = [];
+                const backgroundColors = [];
+                
+                const entries = Object.entries(stats).sort((a,b) => {
+                    if (mode === 'avg_rank' || mode === 'last_rate') return (a[1].rSum/a[1].g) - (b[1].rSum/b[1].g);
+                    return b[1].income - a[1].income;
+                });
+
+                entries.forEach(([name, s], i) => {
+                    labels.push(name);
+                    let val = 0;
+                    if (mode === 'income') val = s.income;
+                    else if (mode === 'score_no_chip') val = s.pts;
+                    else if (mode === 'score_with_chip') val = s.chipPts;
+                    else if (mode === 'top_rate') val = (s.r1/s.g*100);
+                    else if (mode === 'rentai_rate') val = ((s.r1+s.r2)/s.g*100);
+                    else if (mode === 'avg_rank') val = (s.rSum/s.g);
+                    else if (mode === 'last_rate') val = (s.r4/s.g*100);
+                    dataValues.push(val);
+                    backgroundColors.push(this.colors[i % this.colors.length]);
+                });
+
+                const modeLabel = {
+                    'income': '収支 (円)', 'score_no_chip': 'スコア (pt)', 'score_with_chip': 'スコア込 (pt)',
+                    'top_rate': 'トップ率 (%)', 'rentai_rate': '連対率 (%)', 'avg_rank': '平均順位', 'last_rate': 'ラス率 (%)'
+                }[mode];
+                document.getElementById('comparison-title').innerText = modeLabel + " 比較";
+
+                this.comparisonChart = new Chart(compCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: dataValues,
+                            backgroundColor: backgroundColors,
+                            borderRadius: 6,
+                            barThickness: 16
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 9, weight: 'bold' } } },
+                            y: { grid: { display: false }, ticks: { font: { size: 10, weight: 'black' } } }
+                        }
+                    }
+                });
+            },
+
+            resetStatsFilter() { 
+                document.getElementById('stats-start-date').value = ''; 
+                document.getElementById('stats-end-date').value = ''; 
+                this.renderStats(this.currentStatMode); 
+            },
+            
+            showNewSetModal() { 
+                this.db.currentSet = null; 
+                this.refreshMemberSelectUI(); 
+                this.openModal('modal-new-set'); 
+            },
+            
             refreshMemberSelectUI() {
                 const grid = document.getElementById('member-select-grid'); grid.innerHTML = '';
                 this.db.members.forEach(m => {
@@ -308,41 +453,50 @@
                 });
                 this.updateStartButtonState();
             },
+            
             updateStartButtonState() {
                 const selectedCount = document.querySelectorAll('.member-sel.selected').length;
                 const required = parseInt(document.getElementById('setup-count').value);
                 document.getElementById('selected-count').innerText = selectedCount;
                 document.getElementById('modal-start-btn').disabled = selectedCount !== required;
             },
+            
             startSet() {
                 const sel = Array.from(document.querySelectorAll('.member-sel.selected')).map(s => ({ name: s.innerText, scores: [0], chip: 0 }));
-                this.db.currentSet = { id: Date.now(), date: new Date().toISOString(), playerCount: sel.length, rate: 50, chipRate: 5, players: sel };
+                const rate = parseInt(document.getElementById('setup-rate').value) || 50;
+                const chipRate = parseInt(document.getElementById('setup-chip-rate').value) || 100;
+                this.db.currentSet = { id: Date.now(), date: new Date().toISOString(), playerCount: sel.length, rate: rate, chipRate: chipRate, players: sel };
                 this.save(); this.closeModal('modal-new-set'); this.setTab('input');
             },
+            
             renderInputTable() {
                 const s = this.db.currentSet; if (!s) return;
                 const h = document.getElementById('player-headers'); h.innerHTML = '<th class="w-10 sticky-col">回</th>';
                 s.players.forEach(p => h.innerHTML += `<th>${p.name}</th>`);
                 const rows = document.getElementById('score-rows'); rows.innerHTML = '';
                 for (let i = 0; i < s.players[0].scores.length; i++) {
-                    let html = `<td class="sticky-col text-slate-300 font-bold">${i+1}</td>`;
+                    let html = `<td class="sticky-col text-slate-300 font-black">${i+1}</td>`;
                     s.players.forEach((p, pi) => html += `<td><input type="number" step="0.1" value="${p.scores[i]}" oninput="app.updateScore(${i}, ${pi}, this.value)"></td>`);
                     const tr = document.createElement('tr'); tr.innerHTML = html; rows.appendChild(tr);
                 }
                 this.calcAll();
             },
+            
             updateScore(ri, pi, v) { this.db.currentSet.players[pi].scores[ri] = parseFloat(v) || 0; this.calcAll(); this.save(); },
             addRow() { this.db.currentSet.players.forEach(p => p.scores.push(0)); this.renderInputTable(); },
+            
             calcAll() {
                 const s = this.db.currentSet; if (!s) return;
                 const feeTotal = parseFloat(document.getElementById('manual-fee').value) || 0;
                 s.players.forEach((p, pi) => {
                     const pts = p.scores.reduce((a,b)=>a+b,0);
-                    const inc = Math.round(pts * s.rate) - (feeTotal / s.playerCount);
+                    const chipVal = parseFloat(document.getElementById(`chip-${pi}`).value) || 0;
+                    const inc = Math.round(pts * s.rate) + (chipVal * s.chipRate) - (feeTotal / s.playerCount);
                     document.getElementById(`total-${pi}`).innerText = pts.toFixed(1);
                     document.getElementById(`income-${pi}`).innerText = Math.round(inc).toLocaleString() + "円";
                 });
             },
+            
             saveCurrentSet() {
                 if (!confirm("対局を保存して終了しますか？")) return;
                 const set = JSON.parse(JSON.stringify(this.db.currentSet));
@@ -351,18 +505,20 @@
                     const chipVal = parseFloat(document.getElementById(`chip-${pi}`).value) || 0;
                     p.chip = chipVal;
                     p.totalScore = p.scores.reduce((a,b)=>a+b,0);
-                    p.income = Math.round((p.totalScore + (chipVal * set.chipRate / set.rate)) * set.rate) - (feeTotal / set.playerCount);
+                    p.income = Math.round(p.totalScore * set.rate) + (chipVal * set.chipRate) - (feeTotal / set.playerCount);
                 });
                 this.db.history.unshift(set); this.db.currentSet = null; this.save(); this.setTab('history');
             },
+            
             renderHistory() {
                 const l = document.getElementById('history-list'); l.innerHTML = '';
                 this.db.history.forEach((h, i) => {
                     let ps = ''; h.players.forEach(p => ps += `<div class="flex justify-between text-sm"><span>${p.name}</span><span class="font-bold ${p.income<0?'text-red-500':'text-emerald-500'}">${p.income.toLocaleString()}円</span></div>`);
-                    l.innerHTML += `<div class="bg-white p-4 rounded-2xl border shadow-sm relative"><div class="text-[9px] text-slate-300 font-bold border-b mb-2">${new Date(h.date).toLocaleString()}</div><button onclick="app.delHistory(${i})" class="absolute top-4 right-4 text-slate-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>${ps}</div>`;
+                    l.innerHTML += `<div class="bg-white p-4 rounded-2xl border shadow-sm relative"><div class="text-[9px] text-slate-300 font-bold border-b mb-2">${new Date(h.date).toLocaleString()} (レート:${h.rate})</div><button onclick="app.delHistory(${i})" class="absolute top-4 right-4 text-slate-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>${ps}</div>`;
                 });
                 lucide.createIcons();
             },
+            
             delHistory(i) { if (confirm("削除しますか？")) { this.db.history.splice(i,1); this.save(); this.renderHistory(); } },
             openModal(id) { document.getElementById(id).classList.remove('hidden'); },
             closeModal(id) { document.getElementById(id).classList.add('hidden'); }
