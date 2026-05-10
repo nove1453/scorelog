@@ -1,785 +1,592 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ScoreLog Pro AI</title>
-<script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com/)"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<style>
-body { background-color: #f8fafc; color: #1e293b; font-family: sans-serif; overscroll-behavior: none; }
-.score-table th, .score-table td { border: 1px solid #e2e8f0; padding: 10px 4px; text-align: center; }
-.score-table th { background-color: #f1f5f9; font-size: 0.75rem; font-weight: 800; }
-.score-input-cell { width: 100%; text-align: center; background: transparent; border: 2px solid transparent; border-radius: 6px; outline: none; font-size: 1.1rem; font-weight: 700; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.score-input-cell.active { border-color: #10b981; background-color: #f0fdf4; }
-.sticky-col { position: sticky; left: 0; background: white; z-index: 5; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-.pos-val { color: #059669 !important; }
-.neg-val { color: #e11d48 !important; }
-.tab-btn { flex: 0 0 auto; padding: 8px 14px; font-size: 12px; font-weight: 900; border-radius: 10px; transition: all 0.2s; white-space: nowrap; border: 1px solid #e2e8f0; background: #f8fafc; color: #64748b; }
-.tab-btn.active { background: #10b981; color: white; border-color: #10b981; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2); }
-#custom-keypad { transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 24px 24px 0 0; }
-#custom-keypad.open { transform: translateY(0); }
-.key-btn { background: white; border-radius: 12px; font-weight: 900; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; height: 54px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-.key-btn:active { background: #f1f5f9; transform: scale(0.95); }
-.key-action { background: #f1f5f9; color: #64748b; }
-.key-done { background: #10b981; color: white; }
-.member-sel.selected { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; }
-
-```
-    /* 画像生成用コンテナのデザインアップデート */
-    #share-card-container {
-        position: absolute; left: -9999px; top: -9999px;
-        width: 500px; background: #fdfdfd; padding: 0; color: #1e293b;
-        font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-    }
-    .share-inner { padding: 25px; border: 12px solid #14532d; min-height: 800px; }
-    .share-banner {
-        background: #14532d; color: white; padding: 15px; text-align: center;
-        border-radius: 8px; margin-bottom: 20px; position: relative;
-    }
-    .share-banner::before, .share-banner::after {
-        content: ''; position: absolute; top: 10px; font-size: 24px;
-    }
-    .rank-card {
-        display: flex; align-items: center; padding: 12px 20px; margin-bottom: 10px;
-        border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); position: relative;
-    }
-    .rank-1 { background: #fef9c3; border-left: 8px solid #f59e0b; }
-    .rank-2 { background: #f1f5f9; border-left: 8px solid #94a3b8; }
-    .rank-3 { background: #ffedd5; border-left: 8px solid #d97706; }
-    .rank-4 { background: #eff6ff; border-left: 8px solid #3b82f6; }
-
-    .rank-badge { font-size: 24px; font-weight: 900; italic; width: 50px; }
-    .player-info { flex-grow: 1; margin-left: 15px; }
-    .player-name { font-size: 20px; font-weight: 900; }
-    .player-comment { font-size: 11px; background: white; padding: 2px 10px; border-radius: 20px; display: inline-block; margin-top: 4px; font-weight: bold; color: #64748b; border: 1px solid #e2e8f0; }
-    .player-result { text-align: right; }
-    .result-main { font-size: 24px; font-weight: 900; letter-spacing: -1px; }
-    .result-sub { font-size: 10px; font-weight: bold; color: #64748b; }
-
-    .detail-table {
-        width: 100%; margin-top: 25px; border-collapse: separate; border-spacing: 0;
-        border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white;
-    }
-    .detail-table th { background: #f8fafc; padding: 10px 5px; font-size: 11px; border-bottom: 2px solid #e2e8f0; }
-    .detail-table td { padding: 8px 5px; font-size: 12px; text-align: center; border-bottom: 1px solid #f1f5f9; font-weight: bold; }
-</style>
-```
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScoreLog Pro AI - 麻雀成績管理</title>
+    <!-- 外部ライブラリ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans JP', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .animate-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
-<body class="bg-slate-50 flex flex-col min-h-screen">
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
 
-```
-<div id="app-container" class="max-w-md mx-auto flex-1 flex flex-col bg-white shadow-xl relative overflow-hidden">
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
 
-    <header class="p-4 bg-white border-b flex justify-between items-center shrink-0 z-40">
-        <div class="flex items-center gap-2">
-            <i data-lucide="sparkles" class="text-emerald-500 w-5 h-5"></i>
-            <h1 class="text-lg font-black tracking-tighter italic">ScoreLog Pro AI</h1>
-        </div>
-        <button onclick="app.showNewSetModal()" class="bg-emerald-500 text-white p-2 rounded-full shadow-lg">
-            <i data-lucide="plus" class="w-5 h-5"></i>
-        </button>
-    </header>
+        const STORAGE_KEY = 'scorelog_v40_final';
 
-    <main class="flex-1 overflow-y-auto no-scrollbar pb-32">
-        <!-- 歓迎画面 -->
-        <div id="view-welcome" class="flex flex-col items-center justify-center py-20 px-10 text-center space-y-6">
-            <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center"><i data-lucide="spade" class="w-10 h-10"></i></div>
-            <h2 class="text-2xl font-black italic">ようこそ</h2>
-            <button onclick="app.showNewSetModal()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg">対局を開始する</button>
-        </div>
+        const Icon = ({ name, className = "w-5 h-5", ...props }) => {
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [name, className]);
+            return <i data-lucide={name.toLowerCase().replace(/([a-z0-9])([A-Z])/g, '$1-$2')} className={className} {...props}></i>;
+        };
 
-        <!-- スコア入力画面 -->
-        <div id="view-input" class="hidden">
-            <div id="view-mode-indicator" class="hidden bg-emerald-600 border-b border-emerald-700 p-3 flex justify-between items-center px-4">
-                <span class="text-[10px] font-black text-white uppercase tracking-widest italic">記録閲覧モード</span>
-                <button onclick="app.generateShareImage()" class="bg-white text-emerald-600 text-[10px] px-4 py-2 rounded-full font-black flex items-center gap-2 shadow-lg active:scale-95 transition-all">
-                    <i data-lucide="share-2" class="w-3 h-3"></i> 結果を画像で保存
-                </button>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full score-table border-collapse table-fixed min-w-[320px]">
-                    <thead><tr id="player-headers"></tr></thead>
-                    <tbody id="score-rows"></tbody>
-                    <tfoot class="text-sm">
-                        <tr class="bg-slate-50 font-bold">
-                            <td class="sticky-col font-black italic">累計</td>
-                            <td id="total-0">0</td><td id="total-1">0</td><td id="total-2">0</td><td id="total-3">0</td>
-                        </tr>
-                        <tr class="text-[10px] text-slate-400 font-bold italic">
-                            <td class="sticky-col">チップ</td>
-                            <td onclick="app.focusInput('chip', 0, 0)"><div id="chip-val-0" class="score-input-cell">0</div></td>
-                            <td onclick="app.focusInput('chip', 0, 1)"><div id="chip-val-1" class="score-input-cell">0</div></td>
-                            <td onclick="app.focusInput('chip', 0, 2)"><div id="chip-val-2" class="score-input-cell">0</div></td>
-                            <td onclick="app.focusInput('chip', 0, 3)"><div id="chip-val-3" class="score-input-cell">0</div></td>
-                        </tr>
-                        <tr class="text-[10px] text-slate-400 font-bold italic">
-                            <td class="sticky-col font-black text-[8px]">場代(合計)</td>
-                            <td colspan="4" onclick="app.focusInput('fee', 0, 0)"><div id="fee-val" class="score-input-cell text-emerald-600">0</div></td>
-                        </tr>
-                        <tr class="bg-slate-900 text-white font-black">
-                            <td class="sticky-col bg-slate-900 text-[10px]">収支<br><span class="text-[7px] opacity-60 font-normal">スコア+チップ</span></td>
-                            <td id="income-0">0</td><td id="income-1">0</td><td id="income-2">0</td><td id="income-3">0</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-            <div id="input-controls" class="p-4 space-y-3">
-                <button onclick="app.addRow()" class="w-full py-3 bg-slate-100 rounded-xl text-slate-600 font-bold">+ 半荘追加</button>
-                <button id="save-set-btn" onclick="app.saveCurrentSet()" class="w-full py-5 bg-emerald-500 text-white rounded-2xl font-black text-lg shadow-xl italic">保存して終了</button>
-            </div>
-            <div id="view-controls" class="hidden p-4">
-                <button onclick="app.closeViewRecord()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl italic">記録を閉じる</button>
-            </div>
-        </div>
-
-        <!-- 統計画面 (アップデート版) -->
-        <div id="view-stats" class="hidden p-4 space-y-4">
-            <div class="flex justify-between items-end">
-                <h2 class="text-xl font-black italic">成績統計</h2>
-                <span class="text-[9px] font-bold text-slate-400 italic">期間指定・個人推移</span>
-            </div>
-
-            <!-- フィルター設定 -->
-            <div class="bg-white border rounded-2xl p-3 shadow-sm space-y-3">
-                <div class="flex gap-2 items-center">
-                    <i data-lucide="calendar" class="w-3 h-3 text-slate-400"></i>
-                    <input type="date" id="stats-start-date" class="flex-1 text-[10px] font-bold bg-slate-50 p-2 rounded-lg border-none" onchange="app.renderStats(app.currentStatMode)">
-                    <span class="text-slate-300">~</span>
-                    <input type="date" id="stats-end-date" class="flex-1 text-[10px] font-bold bg-slate-50 p-2 rounded-lg border-none" onchange="app.renderStats(app.currentStatMode)">
-                </div>
-                <div class="flex gap-2 items-center border-t pt-2">
-                    <i data-lucide="user" class="w-3 h-3 text-slate-400"></i>
-                    <select id="stats-player-select" class="flex-1 text-[10px] font-bold bg-slate-50 p-2 rounded-lg border-none" onchange="app.renderStats(app.currentStatMode)">
-                        <option value="all">全員表示</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="bg-white border rounded-3xl p-4 shadow-sm">
-                <canvas id="trendChart" height="180"></canvas>
-            </div>
-
-            <div class="tabs-container no-scrollbar flex gap-2 overflow-x-auto pb-2" id="stats-tabs"></div>
-            <div id="player-stats-list" class="space-y-3"></div>
-        </div>
-
-        <!-- 分析画面 -->
-        <div id="view-analysis" class="hidden p-4 space-y-4">
-            <h2 class="text-xl font-black italic">相性分析</h2>
-            <div class="bg-slate-100 p-2 rounded-2xl flex flex-wrap gap-2" id="analysis-chips"></div>
-            <div id="analysis-results" class="space-y-4 pt-4">
-                <div id="analysis-placeholder" class="py-20 text-center text-slate-300 font-bold italic">メンバーを選択して分析開始</div>
-            </div>
-        </div>
-
-        <!-- メンバー/履歴 -->
-        <div id="view-members" class="hidden p-4 space-y-4">
-            <div class="flex justify-between items-center font-black italic">
-                <span>メンバー管理</span>
-                <button onclick="app.addMemberPrompt()" class="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full font-bold text-xs">+ 追加</button>
-            </div>
-            <div id="member-list" class="space-y-2"></div>
-            <div class="mt-8 pt-6 border-t grid grid-cols-2 gap-3">
-                <button onclick="app.exportData()" class="py-3 bg-slate-100 rounded-xl text-[10px] font-black text-slate-600">バックアップ</button>
-                <button onclick="app.importData()" class="py-3 bg-slate-100 rounded-xl text-[10px] font-black text-slate-600">データ復元</button>
-            </div>
-        </div>
-
-        <div id="view-history" class="hidden p-4 space-y-4">
-            <h2 class="text-xl font-black italic">履歴</h2>
-            <div id="history-list" class="space-y-3"></div>
-        </div>
-    </main>
-
-    <!-- テンキー -->
-    <div id="custom-keypad" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-200 p-4 shadow-2xl z-50">
-        <div class="flex justify-between items-center mb-3 px-2">
-            <span id="keypad-title" class="font-black text-slate-500 text-xs italic uppercase">入力</span>
-            <span id="keypad-preview" class="text-xl font-black text-emerald-600">0</span>
-        </div>
-        <div class="grid grid-cols-4 gap-2">
-            <button onclick="app.keyPress('7')" class="key-btn">7</button><button onclick="app.keyPress('8')" class="key-btn">8</button><button onclick="app.keyPress('9')" class="key-btn">9</button><button onclick="app.keyPress('back')" class="key-btn key-action"><i data-lucide="delete"></i></button>
-            <button onclick="app.keyPress('4')" class="key-btn">4</button><button onclick="app.keyPress('5')" class="key-btn">5</button><button onclick="app.keyPress('6')" class="key-btn">6</button><button onclick="app.keyPress('-')" class="key-btn key-action">+/-</button>
-            <button onclick="app.keyPress('1')" class="key-btn">1</button><button onclick="app.keyPress('2')" class="key-btn">2</button><button onclick="app.keyPress('3')" class="key-btn">3</button><button onclick="app.keyPress('clear')" class="key-btn key-action">C</button>
-            <button onclick="app.keyPress('0')" class="key-btn">0</button><button onclick="app.keyPress('00')" class="key-btn text-sm">00</button><button onclick="app.keyPress('.')" class="key-btn">.</button><button onclick="app.closeKeypad()" class="key-btn key-done"><i data-lucide="check"></i></button>
-        </div>
-    </div>
-
-    <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t flex justify-around items-center h-16 z-30">
-        <button onclick="app.setTab('input')" id="nav-input" class="flex flex-col items-center text-slate-400"><i data-lucide="edit-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">対局</span></button>
-        <button onclick="app.setTab('analysis')" id="nav-analysis" class="flex flex-col items-center text-slate-400"><i data-lucide="target" class="w-5 h-5"></i><span class="text-[10px] font-bold">分析</span></button>
-        <button onclick="app.setTab('stats')" id="nav-stats" class="flex flex-col items-center text-slate-400"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">成績</span></button>
-        <button onclick="app.setTab('members')" id="nav-members" class="flex flex-col items-center text-slate-400"><i data-lucide="users" class="w-5 h-5"></i><span class="text-[10px] font-bold">メンバー</span></button>
-        <button onclick="app.setTab('history')" id="nav-history" class="flex flex-col items-center text-slate-400"><i data-lucide="archive" class="w-5 h-5"></i><span class="text-[10px] font-bold">履歴</span></button>
-    </nav>
-
-    <div id="modal-new-set" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
-        <div class="bg-white w-full rounded-3xl p-6 space-y-5 max-h-[90vh] flex flex-col">
-            <h3 class="text-xl font-black text-center italic">新規対局作成</h3>
-            <div class="space-y-4 flex-1 overflow-y-auto no-scrollbar">
-                <div class="grid grid-cols-2 gap-3">
-                    <select id="setup-count" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold" onchange="app.refreshMemberSelectUI()"><option value="4">4人打ち</option><option value="3">3人打ち</option></select>
-                    <div class="space-y-1">
-                        <label class="text-[9px] font-black text-slate-400 block px-1">スコアレード(円/1pt)</label>
-                        <input type="number" id="setup-rate" value="50" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="space-y-1">
-                        <label class="text-[9px] font-black text-slate-400 block px-1">チップレート(円/枚)</label>
-                        <input type="number" id="setup-chip-rate" value="100" class="w-full bg-slate-100 rounded-xl p-3 text-sm font-bold">
-                    </div>
-                </div>
-                <div id="member-select-grid" class="grid grid-cols-2 gap-2"></div>
-            </div>
-            <button onclick="app.startSet()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg italic uppercase tracking-wider">対局開始</button>
-            <button onclick="app.closeModal('modal-new-set')" class="w-full text-slate-400 text-[10px] font-bold">キャンセル</button>
-        </div>
-    </div>
-</div>
-
-<!-- シェア画像用隠しコンテナ -->
-<div id="share-card-container">
-    <div class="share-inner">
-        <div class="share-banner">
-            <div id="share-date-txt" style="font-size: 14px; font-weight: bold; opacity: 0.9;"></div>
-            <div style="font-size: 26px; font-weight: 900; letter-spacing: 2px;">対局結果レポート</div>
-            <div id="share-info-txt" style="font-size: 12px; font-weight: bold; margin-top: 5px; opacity: 0.8;"></div>
-        </div>
-
-        <div id="rank-cards-area"></div>
-
-        <table class="detail-table">
-            <thead>
-                <tr id="detail-header"></tr>
-            </thead>
-            <tbody id="detail-body"></tbody>
-        </table>
-
-        <div style="margin-top: 30px; text-align: center; font-size: 11px; color: #94a3b8; font-weight: 900; letter-spacing: 3px;">
-            GENERATED BY SCORELOG PRO AI
-        </div>
-    </div>
-</div>
-
-<script>
-    const app = {
-        STORAGE_KEY: 'scorelog_v31_final',
-        db: { members: [], history: [], currentSet: null },
-        activeField: null,
-        currentValue: "0",
-        viewingRecord: null,
-        selectedAnalysisMembers: [],
-        currentStatMode: 'income',
-        colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'],
-
-        init() {
-            const saved = localStorage.getItem(this.STORAGE_KEY);
-            if (saved) { try { this.db = JSON.parse(saved); } catch(e) {} }
-            if (!this.db.members?.length) this.db.members = [{id:1,name:'かなさ'},{id:2,name:'しぶや'},{id:3,name:'高石さん'},{id:4,name:'たくろう'}];
-            this.setTab(this.db.currentSet ? 'input' : 'welcome');
-            lucide.createIcons();
-        },
-
-        save() { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.db)); },
-
-        setTab(tab) {
-            if (tab !== 'input') {
-                this.viewingRecord = null;
-            }
-
-            ['input', 'members', 'stats', 'history', 'welcome', 'analysis'].forEach(v => {
-                const el = document.getElementById(`view-${v}`);
-                if (el) el.classList.add('hidden');
-            });
-
-            const targetView = document.getElementById(`view-${tab}`);
-            if (targetView) targetView.classList.remove('hidden');
-
-            document.querySelectorAll('nav button').forEach(b => b.classList.replace('text-emerald-500', 'text-slate-400'));
-            const navBtn = document.getElementById(`nav-${tab}`);
-            if (navBtn) navBtn.classList.replace('text-slate-400', 'text-emerald-500');
-
-            if (tab === 'input') this.renderInputTable();
-            if (tab === 'stats') {
-                this.refreshStatsMemberSelect();
-                this.renderStats(this.currentStatMode);
-            }
-            if (tab === 'members') this.renderMembers();
-            if (tab === 'history') this.renderHistory();
-            if (tab === 'analysis') this.renderAnalysisInit();
-
-            lucide.createIcons();
-            this.closeKeypad();
-        },
-
-        focusInput(type, ri, pi) {
-            if (this.viewingRecord) return;
-            this.activeField = { type, ri, pi };
-            const s = this.db.currentSet;
-            if (!s) return;
-            if (type === 'score') this.currentValue = String(s.players[pi].scores[ri]);
-            else if (type === 'chip') this.currentValue = String(s.players[pi].chip || 0);
-            else if (type === 'fee') this.currentValue = String(s.fee || 0);
-
-            document.querySelectorAll('.score-input-cell').forEach(el => el.classList.remove('active'));
-            let tid = type === 'score' ? `score-val-${ri}-${pi}` : (type === 'chip' ? `chip-val-${pi}` : 'fee-val');
-            document.getElementById(tid)?.classList.add('active');
-
-            document.getElementById('keypad-preview').innerText = this.currentValue;
-            document.getElementById('custom-keypad').classList.add('open');
-        },
-
-        applyValue(v) {
-            const s = this.db.currentSet; if (!s) return;
-            const n = parseFloat(v) || 0;
-            const { type, ri, pi } = this.activeField;
-            if (type === 'score') s.players[pi].scores[ri] = n;
-            else if (type === 'chip') s.players[pi].chip = n;
-            else if (type === 'fee') s.fee = n;
-            this.renderInputTable();
-            this.save();
-        },
-
-        renderInputTable() {
-            const s = this.viewingRecord || this.db.currentSet;
-            if (!s) {
-                this.setTab('welcome');
-                return;
-            }
-            const isView = !!this.viewingRecord;
-
-            const modeInd = document.getElementById('view-mode-indicator');
-            const inCtrl = document.getElementById('input-controls');
-            const viewCtrl = document.getElementById('view-controls');
-
-            if (modeInd) modeInd.classList.toggle('hidden', !isView);
-            if (inCtrl) inCtrl.classList.toggle('hidden', isView);
-            if (viewCtrl) viewCtrl.classList.toggle('hidden', !isView);
-
-            const h = document.getElementById('player-headers');
-            h.innerHTML = '<th class="w-10 sticky-col italic text-[9px]">半荘</th>';
-            s.players.forEach((p, i) => h.innerHTML += `<th>${p.name}</th>`);
-
-            const rows = document.getElementById('score-rows');
-            rows.innerHTML = '';
-            const roundCount = s.players[0].scores.length;
-
-            for (let i = 0; i < roundCount; i++) {
-                let html = `<td class="sticky-col text-slate-300 font-bold text-xs">${i+1}</td>`;
-                s.players.forEach((p, pi) => {
-                    const val = p.scores[i];
-                    html += `<td onclick="${isView ? '' : `app.focusInput('score', ${i}, ${pi})`}"><div id="score-val-${i}-${pi}" class="score-input-cell ${val > 0 ? 'pos-val' : 'neg-val'}">${val}</div></td>`;
-                });
-                const tr = document.createElement('tr');
-                tr.innerHTML = html;
-                rows.appendChild(tr);
-            }
-            this.calcAll();
-        },
-
-        calcAll() {
-            const s = this.viewingRecord || this.db.currentSet; if (!s) return;
-            s.players.forEach((p, pi) => {
-                const pts = p.scores.reduce((a,b)=>a+b,0);
-                const incomePure = (pts * s.rate) + ((p.chip||0) * s.chipRate);
-
-                const totalEl = document.getElementById(`total-${pi}`);
-                const incEl = document.getElementById(`income-${pi}`);
-                const chipEl = document.getElementById(`chip-val-${pi}`);
-
-                if (totalEl) totalEl.innerText = pts.toFixed(1);
-                if (incEl) {
-                    incEl.innerText = Math.round(incomePure).toLocaleString() + "円";
-                    incEl.className = incomePure >= 0 ? 'pos-val' : 'neg-val';
-                }
-                if (chipEl) chipEl.innerText = p.chip || 0;
-            });
-            const feeEl = document.getElementById('fee-val');
-            if (feeEl) feeEl.innerText = s.fee || 0;
-        },
-
-        // 統計用のメンバー選択肢を更新
-        refreshStatsMemberSelect() {
-            const select = document.getElementById('stats-player-select');
-            const currentVal = select.value;
-            select.innerHTML = '<option value="all">全員表示</option>';
-            this.db.members.forEach(m => {
-                select.innerHTML += `<option value="${m.name}">${m.name}</option>`;
-            });
-            select.value = currentVal || 'all';
-        },
-
-        renderStats(mode) {
-            this.currentStatMode = mode;
-            const tc = document.getElementById('stats-tabs'); tc.innerHTML = '';
-            const tabs = [
-                {k:'income', l:'純収支'}, {k:'pts', l:'スコア'}, {k:'top', l:'トップ率'},
-                {k:'rentai', l:'連対率'}, {k:'avg', l:'平均順位'}, {k:'last', l:'ラス率'}
-            ];
-            tabs.forEach(t => {
-                const b = document.createElement('button'); b.className = `tab-btn ${mode === t.k ? 'active' : 'inactive'}`;
-                b.innerText = t.l; b.onclick = () => this.renderStats(t.k); tc.appendChild(b);
-            });
-
-            // フィルターの取得
-            const startDate = document.getElementById('stats-start-date').value;
-            const endDate = document.getElementById('stats-end-date').value;
-
-            const stats = {};
-            this.db.history.forEach(h => {
-                // 期間フィルター
-                const d = h.date.split('T')[0];
-                if ((startDate && d < startDate) || (endDate && d > endDate)) return;
-
-                h.players.forEach(p => {
-                    if (!stats[p.name]) stats[p.name] = { income:0, pts:0, games:0, r1:0, r2:0, r4:0, rSum:0 };
-                    const s = stats[p.name];
-                    const ptsSum = p.scores.reduce((a,b)=>a+b,0);
-                    s.income += (ptsSum * h.rate) + ((p.chip||0) * h.chipRate);
-                    p.scores.forEach((sc, idx) => {
-                        s.games++;
-                        s.pts += sc;
-                        const ranks = h.players.map(pl => pl.scores[idx]).sort((a,b)=>b-a);
-                        const rank = ranks.indexOf(sc) + 1;
-                        s.rSum += rank;
-                        if (rank === 1) s.r1++;
-                        if (rank === 2) s.r2++;
-                        if (rank === 4) s.r4++;
-                    });
-                });
-            });
-
-            const list = document.getElementById('player-stats-list'); list.innerHTML = '';
-            Object.entries(stats).sort((a,b) => {
-                if(mode === 'income') return b[1].income - a[1].income;
-                if(mode === 'pts') return b[1].pts - a[1].pts;
-                if(mode === 'top') return (b[1].r1/b[1].games) - (a[1].r1/a[1].games);
-                if(mode === 'rentai') return ((b[1].r1+b[1].r2)/b[1].games) - ((a[1].r1+a[1].r2)/a[1].games);
-                if(mode === 'avg') return (a[1].rSum/a[1].games) - (b[1].rSum/b[1].games);
-                if(mode === 'last') return (b[1].r4/b[1].games) - (a[1].r4/a[1].games);
-            }).forEach(([name, s]) => {
-                let val = "";
-                if(mode==='income') val = Math.round(s.income).toLocaleString() + "円";
-                else if(mode==='pts') val = s.pts.toFixed(1) + "pt";
-                else if(mode==='top') val = (s.r1/s.games*100).toFixed(1) + "%";
-                else if(mode==='rentai') val = ((s.r1+s.r2)/s.games*100).toFixed(1) + "%";
-                else if(mode==='avg') val = (s.rSum/s.games).toFixed(2);
-                else if(mode==='last') val = (s.r4/s.games*100).toFixed(1) + "%";
-
-                list.innerHTML += `<div class="bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm">
-                    <div class="font-black italic">${name} <span class="text-[9px] text-slate-300 not-italic ml-2">${s.games}局</span></div>
-                    <div class="font-black ${val.includes('-') || (mode==='avg' && parseFloat(val)>2.5) ? 'neg-val' : 'pos-val'}">${val}</div>
-                </div>`;
-            });
-            this.updateTrendChart();
-        },
-
-        updateTrendChart() {
-            const ctx = document.getElementById('trendChart').getContext('2d');
-            if (this.trendChart) this.trendChart.destroy();
-
-            const startDate = document.getElementById('stats-start-date').value;
-            const endDate = document.getElementById('stats-end-date').value;
-            const targetPlayer = document.getElementById('stats-player-select').value;
-
-            // 期間でフィルタリングされた履歴（古い順）
-            const filteredHistory = this.db.history.slice().reverse().filter(h => {
-                const d = h.date.split('T')[0];
-                return (!startDate || d >= startDate) && (!endDate || d <= endDate);
-            });
-
-            // X軸ラベル（年月）
-            const labels = ['', ...filteredHistory.map(h => {
-                const d = new Date(h.date);
-                return `${d.getFullYear()}/${d.getMonth() + 1}`;
-            })];
-
-            // データの生成
-            const datasets = this.db.members
-            .filter(m => targetPlayer === 'all' || m.name === targetPlayer)
-            .map((m, i) => {
-                let bal = 0;
-                const data = [0];
-                filteredHistory.forEach(h => {
-                    const p = h.players.find(pl => pl.name === m.name);
-                    if (p) {
-                        const pts = p.scores.reduce((a,b)=>a+b,0);
-                        bal += (pts * h.rate) + ((p.chip||0) * h.chipRate);
-                    }
-                    data.push(bal);
-                });
-
-                return {
-                    label: m.name,
-                    data,
-                    borderColor: targetPlayer === 'all' ? this.colors[i % this.colors.length] : '#10b981',
-                    borderWidth: 3,
-                    tension: 0.3,
-                    pointRadius: targetPlayer === 'all' ? 0 : 4,
-                    pointBackgroundColor: '#10b981'
+        const App = () => {
+            const [db, setDb] = useState(() => {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                return saved ? JSON.parse(saved) : {
+                    members: [
+                        { id: 1, name: 'プレイヤー1' }, { id: 2, name: 'プレイヤー2' }, 
+                        { id: 3, name: 'プレイヤー3' }, { id: 4, name: 'プレイヤー4' }
+                    ],
+                    history: [],
+                    currentSet: null
                 };
             });
 
-            this.trendChart = new Chart(ctx, {
-                type: 'line',
-                data: { labels, datasets },
-                options: {
-                    plugins: { legend: { display: targetPlayer !== 'all', labels: { font: { weight: 'bold', size: 10 } } } },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { size: 8, weight: 'bold' }, maxRotation: 45, minRotation: 45 }
+            const [activeTab, setActiveTab] = useState('welcome');
+            const [activeField, setActiveField] = useState(null); 
+            const [currentValue, setCurrentValue] = useState("0");
+            const [viewingRecord, setViewingRecord] = useState(null);
+            
+            const [statStartDate, setStatStartDate] = useState("");
+            const [statEndDate, setStatEndDate] = useState("");
+            const [statSelectedNames, setStatSelectedNames] = useState([]);
+            const [statType, setStatType] = useState('income'); 
+
+            const [selectedAnalysisMembers, setSelectedAnalysisMembers] = useState([]);
+            const [showJsonEditor, setShowJsonEditor] = useState(false);
+            const [jsonInput, setJsonInput] = useState("");
+            const [showNewSetModal, setShowNewSetModal] = useState(false);
+            const [modalSetup, setModalSetup] = useState({ rate: 50, chipRate: 100, selectedIds: [] });
+            
+            const chartRef = useRef(null);
+            const trendChartInstance = useRef(null);
+
+            useEffect(() => {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+                if (db.currentSet && activeTab === 'welcome') setActiveTab('input');
+            }, [db]);
+
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [activeTab, showNewSetModal, viewingRecord, statType]);
+
+            const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
+
+            const currentData = viewingRecord || db.currentSet;
+
+            // 即時反映ロジック (Web版ブラウザ上でも即座に計算されます)
+            const calculatedPlayers = useMemo(() => {
+                if (!currentData) return [];
+                return currentData.players.map(p => {
+                    const scoreTotal = p.scores.reduce((a, b) => a + (Number(b) || 0), 0);
+                    const income = (scoreTotal * currentData.rate) + ((p.chip || 0) * currentData.chipRate) - (p.fee || 0);
+                    return { ...p, scoreTotal, income };
+                });
+            }, [currentData]);
+
+            const stats = useMemo(() => {
+                const res = {};
+                db.history.forEach(h => {
+                    const hDate = h.date.split('T')[0];
+                    if (statStartDate && hDate < statStartDate) return;
+                    if (statEndDate && hDate > statEndDate) return;
+
+                    const gameCount = h.players[0].scores.length;
+                    
+                    h.players.forEach(p => {
+                        if (!res[p.name]) res[p.name] = { 
+                            income: 0, 
+                            scorePure: 0, 
+                            scoreWithChip: 0,
+                            ranks: [], 
+                            games: 0, 
+                            history: [] 
+                        };
+                        const s = res[p.name];
+                        s.income += (p.settlement || 0) + (p.fee || 0);
+                        s.games += gameCount;
+                        
+                        p.scores.forEach((score, idx) => {
+                            const others = h.players.map(op => op.scores[idx]);
+                            const rank = others.filter(os => os > score).length + 1;
+                            s.ranks.push(rank);
+                            s.scorePure += score;
+                            const chipScore = (p.chip || 0) * (h.chipRate / h.rate) / gameCount;
+                            s.scoreWithChip += (score + chipScore);
+                        });
+
+                        s.history.push({ date: h.date, income: (p.settlement + p.fee), score: p.scoreTotal });
+                    });
+                });
+                return res;
+            }, [db.history, statStartDate, statEndDate]);
+
+            useEffect(() => {
+                if (activeTab === 'stats' && chartRef.current) {
+                    if (trendChartInstance.current) trendChartInstance.current.destroy();
+                    
+                    const allAvailableNames = Object.keys(stats);
+                    const targetNames = statSelectedNames.length > 0 
+                        ? statSelectedNames.filter(n => allAvailableNames.includes(n))
+                        : allAvailableNames;
+
+                    const datasets = targetNames.map((name, i) => {
+                        let bal = 0;
+                        const history = stats[name]?.history || [];
+                        const d = [0, ...history.map(h => { 
+                            if (statType === 'income') bal += h.income;
+                            else bal += h.score;
+                            return bal;
+                        })];
+                        return { 
+                            label: name, 
+                            data: d, 
+                            borderColor: colors[i % colors.length], 
+                            borderWidth: 3, 
+                            tension: 0.3, 
+                            pointRadius: 0 
+                        };
+                    });
+
+                    trendChartInstance.current = new Chart(chartRef.current, {
+                        type: 'line',
+                        data: { 
+                            labels: Array(Math.max(...datasets.map(d => d.data.length), 1)).fill(''), 
+                            datasets 
                         },
-                        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 } } }
-                    },
-                    interaction: { intersect: false, mode: 'index' }
+                        options: { 
+                            plugins: { legend: { display: false } }, 
+                            scales: { 
+                                x: { display: false }, 
+                                y: { grid: { color: '#f1f5f9' } } 
+                            }, 
+                            maintainAspectRatio: false 
+                        }
+                    });
                 }
-            });
-        },
+            }, [activeTab, stats, statSelectedNames, statType]);
 
-        async generateShareImage() {
-            const s = this.viewingRecord; if (!s) return;
+            const keyPress = (k) => {
+                if (!activeField) return;
+                let next = currentValue;
+                if (k === 'back') next = next.length > 1 ? next.slice(0, -1) : "0";
+                else if (k === 'clear') next = "0";
+                else if (k === '-') next = next.startsWith('-') ? next.slice(1) : (next === "0" ? "-" : "-" + next);
+                else if (k === '.') { if (!next.includes('.')) next += '.'; }
+                else next = (next === "0") ? k : next + k;
+                setCurrentValue(next);
+                const num = parseFloat(next) || 0;
+                const { type, ri, pi } = activeField;
+                const newDb = { ...db };
+                if (type === 'score') newDb.currentSet.players[pi].scores[ri] = num;
+                else if (type === 'chip') newDb.currentSet.players[pi].chip = num;
+                else if (type === 'fee') newDb.currentSet.players[pi].fee = num;
+                setDb(newDb);
+            };
 
-            // ヘッダー情報
-            const dateObj = new Date(s.date);
-            const dayStr = ["日", "月", "火", "水", "木", "金", "土"][dateObj.getDay()];
-            document.getElementById('share-date-txt').innerText = `${dateObj.getFullYear()}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${String(dateObj.getDate()).padStart(2, '0')} (${dayStr})`;
-            document.getElementById('share-info-txt').innerText = `${s.players[0].scores.length}半荘 / ${s.playerCount}人打ち`;
+            const copyJsonToClipboard = () => {
+                const text = JSON.stringify(db, null, 2);
+                const dummy = document.createElement("textarea");
+                document.body.appendChild(dummy);
+                dummy.value = text;
+                dummy.select();
+                document.execCommand('copy');
+                document.body.removeChild(dummy);
+            };
 
-            // ランキングカード生成
-            const rankCards = document.getElementById('rank-cards-area');
-            rankCards.innerHTML = '';
+            const downloadJson = () => {
+                const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mahjong_data_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+            };
 
-            // 収支でソート
-            const sortedPlayers = s.players.map(p => {
-                const pts = p.scores.reduce((a,b)=>a+b,0);
-                const inc = (pts * s.rate) + ((p.chip||0) * s.chipRate);
-                return { ...p, pts, inc };
-            }).sort((a,b) => b.inc - a.inc);
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        setDb(imported);
+                    } catch (err) { }
+                };
+                reader.readAsText(file);
+            };
 
-            const comments = [
-                ["さすがの勝負強さ！", "異次元の強さ！", "王者の風格"],
-                ["安定感バツグン！", "堅実な打ち回し", "ナイス連対"],
-                ["浮き沈みの激しい展開", "粘り強く戦った", "次こそはプラスへ"],
-                ["本日の養分賞...", "配牌に恵まれず", "耐え時の一日"]
-            ];
-
-            sortedPlayers.forEach((p, i) => {
-                const rank = i + 1;
-                const comment = comments[i][Math.floor(Math.random() * comments[i].length)];
-                const isPlus = p.inc >= 0;
-
-                rankCards.innerHTML += `
-                    <div class="rank-card rank-${rank}">
-                        <div class="rank-badge">${rank}位</div>
-                        <div class="player-info">
-                            <div class="player-name">${p.name} ${rank===1?'<span style="font-size:10px; background:#f59e0b; color:white; padding:2px 6px; border-radius:4px; margin-left:5px;">MVP</span>':''}</div>
-                            <div class="player-comment">👑 ${comment}</div>
+            return (
+                <div className="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-xl relative overflow-hidden font-sans text-slate-800">
+                    <header className="p-4 bg-white border-b flex justify-between items-center shrink-0 z-40">
+                        <div className="flex items-center gap-2">
+                            <Icon name="Sparkles" className="text-emerald-500 w-5 h-5" />
+                            <h1 className="text-lg font-black tracking-tighter italic uppercase">ScoreLog AI</h1>
                         </div>
-                        <div class="player-result">
-                            <div class="result-main ${isPlus?'pos-val':'neg-val'}">${isPlus?'+':''}${Math.round(p.inc).toLocaleString()}</div>
-                            <div class="result-sub">円</div>
+                        <div className="flex gap-1 items-center">
+                            <button onClick={copyJsonToClipboard} className="p-2 text-slate-300 hover:text-emerald-500 transition-colors" title="JSONコピー"><Icon name="Copy" className="w-4 h-4"/></button>
+                            <button onClick={downloadJson} className="p-2 text-slate-300 hover:text-blue-500 transition-colors" title="エクスポート"><Icon name="Download" className="w-4 h-4"/></button>
+                            <label className="p-2 text-slate-300 hover:text-purple-500 cursor-pointer transition-colors" title="インポート">
+                                <Icon name="Upload" className="w-4 h-4"/>
+                                <input type="file" className="hidden" accept=".json" onChange={handleFileUpload} />
+                            </label>
+                            <button onClick={() => { setJsonInput(JSON.stringify(db, null, 2)); setShowJsonEditor(true); }} className="p-2 text-slate-300 hover:text-orange-500 transition-colors" title="JSON編集"><Icon name="FileJson" className="w-4 h-4"/></button>
+                            <button onClick={() => setShowNewSetModal(true)} className="bg-emerald-500 text-white p-2 ml-1 rounded-full shadow-lg active:scale-95 transition-transform"><Icon name="Plus" className="w-5 h-5" /></button>
+                        </div>
+                    </header>
+
+                    <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
+                        {activeTab === 'welcome' && (
+                            <div className="flex flex-col items-center justify-center py-20 px-10 text-center space-y-6">
+                                <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center"><Icon name="Spade" className="w-10 h-10" /></div>
+                                <h2 className="text-2xl font-black italic">記録を開始しましょう</h2>
+                                <button onClick={() => setShowNewSetModal(true)} className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg">新規対局を開始</button>
+                            </div>
+                        )}
+
+                        {activeTab === 'input' && currentData && (
+                            <div className="animate-in">
+                                {viewingRecord && <div className="bg-emerald-600 p-2 text-white text-center text-[10px] font-black italic uppercase tracking-widest">閲覧モード</div>}
+                                <div className="overflow-x-auto">
+                                    <table className="w-full border-collapse table-fixed min-w-[320px] text-center">
+                                        <thead>
+                                            <tr className="bg-slate-100 text-[10px] font-black text-slate-500 italic uppercase">
+                                                <th className="w-12 py-3 sticky left-0 bg-slate-100 z-10 border-r">半荘</th>
+                                                {currentData.players.map((p, i) => <th key={i} className="py-3 border-l border-white truncate px-1">{p.name}</th>)}
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white">
+                                            {currentData.players[0].scores.map((_, ri) => (
+                                                <tr key={ri} className="border-b border-slate-50">
+                                                    <td className="sticky left-0 bg-white z-10 py-4 text-xs font-bold text-slate-300 border-r">{ri + 1}</td>
+                                                    {currentData.players.map((p, pi) => (
+                                                        <td key={pi} onClick={() => !viewingRecord && (setActiveField({type:'score', ri, pi}), setCurrentValue(String(p.scores[ri])))} className={`p-1 cursor-pointer transition-colors ${activeField?.type === 'score' && activeField.ri === ri && activeField.pi === pi ? 'bg-emerald-50 ring-2 ring-emerald-500 ring-inset' : ''}`}>
+                                                            <div className={`text-lg font-black ${p.scores[ri] > 0 ? 'text-emerald-600' : p.scores[ri] < 0 ? 'text-rose-500' : 'text-slate-300'}`}>{p.scores[ri]}</div>
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                            <tr className="bg-orange-50/30 border-t border-orange-100">
+                                                <td className="sticky left-0 bg-white z-10 py-3 text-[10px] font-black text-orange-400 border-r italic uppercase">チップ</td>
+                                                {currentData.players.map((p, pi) => (
+                                                    <td key={pi} onClick={() => !viewingRecord && (setActiveField({type:'chip', pi}), setCurrentValue(String(p.chip || 0)))} className={`p-1 cursor-pointer ${activeField?.type === 'chip' && activeField.pi === pi ? 'bg-orange-100 ring-2 ring-orange-500 ring-inset' : ''}`}>
+                                                        <div className="text-sm font-black text-orange-600">{p.chip || 0} 枚</div>
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                            <tr className="bg-slate-50 border-t border-slate-200">
+                                                <td className="sticky left-0 bg-white z-10 py-3 text-[10px] font-black text-slate-400 border-r italic uppercase">場代</td>
+                                                {currentData.players.map((p, pi) => (
+                                                    <td key={pi} onClick={() => !viewingRecord && (setActiveField({type:'fee', pi}), setCurrentValue(String(p.fee || 0)))} className={`p-1 cursor-pointer ${activeField?.type === 'fee' && activeField.pi === pi ? 'bg-slate-200 ring-2 ring-slate-400 ring-inset' : ''}`}>
+                                                        <div className="text-[11px] font-black text-slate-500">{p.fee || 0} 円</div>
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        </tbody>
+                                        <tfoot className="bg-slate-50 font-black text-sm">
+                                            <tr className="border-t-2 border-slate-200">
+                                                <td className="sticky left-0 bg-slate-50 py-3 text-[10px] italic border-r">スコア</td>
+                                                {calculatedPlayers.map((p, i) => <td key={i} className="py-3">{p.scoreTotal.toFixed(1)}</td>)}
+                                            </tr>
+                                            <tr className="bg-slate-900 text-white text-xs">
+                                                <td className="sticky left-0 bg-slate-900 py-4 text-[9px] italic border-r uppercase tracking-widest">精算額</td>
+                                                {calculatedPlayers.map((p, i) => <td key={i} className={`py-4 font-black ${p.income >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{Math.round(p.income).toLocaleString()}</td>)}
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                {!viewingRecord && (
+                                    <div className="p-4 space-y-3">
+                                        <button onClick={() => { const n = {...db}; n.currentSet.players.forEach(p => p.scores.push(0)); setDb(n); }} className="w-full py-3 bg-white border rounded-xl text-slate-500 font-bold hover:bg-slate-50 transition-colors">+ 半荘追加</button>
+                                        <button onClick={() => { 
+                                            const r = {...db.currentSet}; 
+                                            r.players = calculatedPlayers.map(p => ({ ...p, settlement: p.income })); 
+                                            setDb({ ...db, history: [r, ...db.history], currentSet: null }); 
+                                            setActiveTab('history'); 
+                                        }} className="w-full py-5 bg-emerald-500 text-white rounded-2xl font-black text-lg shadow-xl italic active:scale-95 transition-transform">保存して精算を確定</button>
+                                    </div>
+                                )}
+                                {viewingRecord && <div className="p-4"><button onClick={() => { setViewingRecord(null); setActiveTab('history'); }} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black">履歴へ戻る</button></div>}
+                            </div>
+                        )}
+
+                        {activeTab === 'analysis' && (
+                            <div className="p-4 space-y-4 animate-in">
+                                <h2 className="text-xl font-black italic flex items-center gap-2">
+                                    <Icon name="Target" className="text-emerald-500" />
+                                    相性分析
+                                </h2>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">メンバーを選択（最大4名）</p>
+                                <div className="bg-white p-2 rounded-2xl flex flex-wrap gap-2 border">
+                                    {db.members.map(m => (
+                                        <button key={m.id} onClick={() => setSelectedAnalysisMembers(prev => prev.includes(m.name) ? prev.filter(n => n !== m.name) : [...prev, m.name].slice(-4))} className={`px-4 py-2 rounded-full border text-xs font-bold transition-all ${selectedAnalysisMembers.includes(m.name) ? 'bg-emerald-500 text-white border-emerald-500 shadow-md' : 'bg-slate-50 text-slate-500 border-transparent'}`}>{m.name}</button>
+                                    ))}
+                                </div>
+                                {selectedAnalysisMembers.map(target => (
+                                    <div key={target} className="mt-6 animate-in">
+                                        <div className="text-[10px] font-black text-emerald-600 italic bg-emerald-50 px-2 py-1 rounded inline-block mb-3 uppercase tracking-wider">{target} の対戦状況</div>
+                                        <div className="space-y-2">
+                                            {selectedAnalysisMembers.filter(n => n !== target).map(name => {
+                                                let diffIncome = 0;
+                                                let diffScore = 0;
+                                                db.history.forEach(h => {
+                                                    const p1 = h.players.find(p => p.name === target);
+                                                    const p2 = h.players.find(p => p.name === name);
+                                                    if (p1 && p2) {
+                                                        diffIncome += (p1.settlement - p2.settlement);
+                                                        diffScore += (p1.scoreTotal - p2.scoreTotal);
+                                                    }
+                                                });
+                                                return (
+                                                    <div key={name} className="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm">
+                                                        <span className="font-bold">{name}</span>
+                                                        <div className="text-right">
+                                                            <div className={`font-black ${diffIncome >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{diffIncome >= 0 ? '+' : ''}{Math.round(diffIncome).toLocaleString()} 円</div>
+                                                            <div className="text-[10px] text-slate-300 font-black italic">{diffScore >= 0 ? '+' : ''}{diffScore.toFixed(1)} pt</div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {activeTab === 'stats' && (
+                            <div className="p-4 space-y-4 animate-in">
+                                <h2 className="text-xl font-black italic uppercase flex items-center gap-2">
+                                    <Icon name="BarChart3" className="text-emerald-500" />
+                                    成績統計
+                                </h2>
+                                
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-white p-2 rounded-xl border">
+                                        <label className="text-[9px] font-black text-slate-300 block mb-1">開始日</label>
+                                        <input type="date" value={statStartDate} onChange={e => setStatStartDate(e.target.value)} className="w-full text-xs font-bold bg-transparent outline-none" />
+                                    </div>
+                                    <div className="bg-white p-2 rounded-xl border">
+                                        <label className="text-[9px] font-black text-slate-300 block mb-1">終了日</label>
+                                        <input type="date" value={statEndDate} onChange={e => setStatEndDate(e.target.value)} className="w-full text-xs font-bold bg-transparent outline-none" />
+                                    </div>
+                                </div>
+
+                                <div className="flex bg-slate-200 p-1 rounded-xl text-[9px] font-black overflow-x-auto no-scrollbar gap-1">
+                                    {[
+                                        {id:'income', l:'収支(場代除)', icon: 'Coins'}, 
+                                        {id:'scorePure', l:'スコア(チップ除)', icon: 'Target'}, 
+                                        {id:'scoreWithChip', l:'スコア(込)', icon: 'Sparkles'},
+                                        {id:'topRate', l:'トップ率', icon: 'Trophy'},
+                                        {id:'renRate', l:'連対率', icon: 'Crown'},
+                                        {id:'lastRate', l:'ラス率', icon: 'Skull'},
+                                        {id:'avgRank', l:'平均順位', icon: 'Hash'}
+                                    ].map(t => (
+                                        <button key={t.id} onClick={() => setStatType(t.id)} className={`px-3 py-2 rounded-lg transition-all flex-shrink-0 flex items-center gap-1.5 ${statType === t.id ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>
+                                            <Icon name={t.icon} className="w-3 h-3" />
+                                            {t.l}
+                                        </button>
+                                    ))}
+                                </div>
+                                
+                                <div className="bg-white border rounded-[32px] p-5 shadow-sm h-56 relative">
+                                    <canvas ref={chartRef}></canvas>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 py-2">
+                                    {Object.keys(stats).map(name => (
+                                        <button key={name} onClick={() => setStatSelectedNames(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name])} className={`px-3 py-1 rounded-full text-[10px] font-black transition-all border ${statSelectedNames.includes(name) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200'}`}>{name}</button>
+                                    ))}
+                                    {statSelectedNames.length > 0 && <button onClick={() => setStatSelectedNames([])} className="px-3 py-1 rounded-full text-[10px] font-black bg-rose-100 text-rose-500 border border-rose-100">解除</button>}
+                                </div>
+
+                                <div className="space-y-2 mt-2">
+                                    {Object.entries(stats)
+                                        .filter(([name]) => statSelectedNames.length === 0 || statSelectedNames.includes(name))
+                                        .sort((a, b) => {
+                                            if (statType === 'income') return b[1].income - a[1].income;
+                                            if (statType === 'avgRank') return (a[1].ranks.reduce((x,y)=>x+y,0)/a[1].ranks.length) - (b[1].ranks.reduce((x,y)=>x+y,0)/b[1].ranks.length);
+                                            return b[1].scorePure - a[1].scorePure;
+                                        })
+                                        .map(([name, s]) => {
+                                            const total = s.ranks.length;
+                                            const topCount = s.ranks.filter(r => r === 1).length;
+                                            const secondCount = s.ranks.filter(r => r === 2).length;
+                                            const lastCount = s.ranks.filter(r => r === 4).length;
+                                            const avgRank = s.ranks.reduce((a, b) => a + b, 0) / total;
+                                            
+                                            let displayVal = "";
+                                            if (statType === 'income') displayVal = `${Math.round(s.income).toLocaleString()} 円`;
+                                            else if (statType === 'scorePure') displayVal = `${s.scorePure.toFixed(1)} pt`;
+                                            else if (statType === 'scoreWithChip') displayVal = `${s.scoreWithChip.toFixed(1)} pt`;
+                                            else if (statType === 'topRate') displayVal = `${((topCount/total)*100 || 0).toFixed(1)}%`;
+                                            else if (statType === 'renRate') displayVal = `${(((topCount + secondCount)/total)*100 || 0).toFixed(1)}%`;
+                                            else if (statType === 'lastRate') displayVal = `${((lastCount/total)*100 || 0).toFixed(1)}%`;
+                                            else if (statType === 'avgRank') displayVal = `${(avgRank || 0).toFixed(2)} 位`;
+
+                                            return (
+                                                <div key={name} className="bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm">
+                                                    <div className="font-black italic flex items-center gap-2">
+                                                        <span className="w-2 h-2 rounded-full" style={{backgroundColor: colors[Object.keys(stats).indexOf(name) % colors.length]}}></span>
+                                                        {name} <span className="text-[9px] text-slate-300 ml-1">{s.games}半荘</span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className={`font-black ${s.income >= 0 || statType !== 'income' ? 'text-emerald-600' : 'text-rose-500'}`}>{displayVal}</div>
+                                                        <div className="text-[8px] text-slate-300 font-bold uppercase tracking-widest">
+                                                            1位:{topCount} / 2位:{secondCount} / 4位:{lastCount}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    }
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'history' && (
+                            <div className="p-4 space-y-3 animate-in">
+                                <h2 className="text-xl font-black italic uppercase flex items-center gap-2">
+                                    <Icon name="Archive" className="text-emerald-500" />
+                                    対局履歴
+                                </h2>
+                                {db.history.length === 0 && <div className="text-center py-20 text-slate-300 font-bold italic uppercase">No Records</div>}
+                                {db.history.map((h, i) => (
+                                    <div key={i} onClick={() => { setViewingRecord(h); setActiveTab('input'); }} className="bg-white p-4 rounded-2xl border shadow-sm cursor-pointer hover:border-emerald-200 transition-all group">
+                                        <div className="flex justify-between items-center border-b mb-3 pb-2 text-[9px] text-slate-400 font-black italic uppercase">
+                                            <span>{new Date(h.date).toLocaleString('ja-JP')}</span>
+                                            <button onClick={(e) => { e.stopPropagation(); if(confirm("削除しますか？")) { const n = [...db.history]; n.splice(i, 1); setDb({...db, history: n}); }}} className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"><Icon name="Trash2" className="w-3 h-3"/></button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                                            {h.players.map((p, pi) => (
+                                                <div key={pi} className="flex justify-between border-b border-slate-50 pb-1">
+                                                    <span className="text-slate-500 truncate">{p.name}</span>
+                                                    <span className={`font-black ${p.settlement >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>{Math.round(p.settlement).toLocaleString()}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {activeTab === 'members' && (
+                            <div className="p-4 space-y-4 animate-in">
+                                <h2 className="text-xl font-black italic uppercase flex items-center gap-2">
+                                    <Icon name="Users" className="text-emerald-500" />
+                                    名簿管理
+                                </h2>
+                                <div className="space-y-2">
+                                    {db.members.map(m => (
+                                        <div key={m.id} className="bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm group">
+                                            <span className="font-bold">{m.name}</span>
+                                            <button onClick={() => { if(confirm("削除しますか？")) setDb({...db, members: db.members.filter(mem => mem.id !== m.id)}); }} className="text-slate-200 group-hover:text-rose-500 transition-colors"><Icon name="UserMinus" /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={() => { const n = prompt("名前を入力"); if(n) setDb({...db, members: [...db.members, {id: Date.now(), name: n}]}); }} className="w-full py-4 bg-white border-2 border-dashed border-slate-200 rounded-2xl text-slate-300 font-bold hover:text-emerald-500 hover:border-emerald-500 transition-all">+ メンバーを追加</button>
+                                
+                                <div className="mt-8 border-t pt-4">
+                                    <h3 className="text-[10px] font-black text-slate-300 uppercase mb-3">詳細設定</h3>
+                                    <button onClick={() => { setJsonInput(JSON.stringify(db, null, 2)); setShowJsonEditor(true); }} className="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-bold shadow-lg flex items-center justify-center gap-2">
+                                        <Icon name="FileJson" className="w-4 h-4"/>
+                                        データをJSONで直接編集
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/80 backdrop-blur-md border-t flex justify-around items-center h-16 z-30 pb-safe">
+                        {[
+                            {id: 'input', icon: 'Edit3', label: '対局'},
+                            {id: 'analysis', icon: 'Target', label: '分析'},
+                            {id: 'stats', icon: 'BarChart3', label: '統計'},
+                            {id: 'history', icon: 'Archive', label: '履歴'},
+                            {id: 'members', icon: 'Users', label: '名簿'}
+                        ].map(t => (
+                            <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex flex-col items-center flex-1 py-1 transition-all ${activeTab === t.id ? 'text-emerald-500 scale-110' : 'text-slate-400 hover:text-slate-600'}`}>
+                                <Icon name={t.icon} className="w-5 h-5"/>
+                                <span className="text-[9px] font-bold mt-1 tracking-tighter">{t.label}</span>
+                            </button>
+                        ))}
+                    </nav>
+
+                    <div className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-100 p-4 shadow-2xl z-50 rounded-t-[32px] transition-transform duration-300 ease-in-out ${activeField ? 'translate-y-0' : 'translate-y-full'}`}>
+                        <div className="flex justify-between items-center mb-3 px-4">
+                            <span className="font-black text-slate-400 text-[10px] italic uppercase tracking-widest">
+                                {activeField?.type === 'score' ? 'スコア入力' : activeField?.type === 'chip' ? 'チップ入力' : '場代入力'}
+                            </span>
+                            <span className="text-2xl font-black text-emerald-600 tabular-nums">{currentValue}</span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                            {['7','8','9','Delete','4','5','6','-','1','2','3','Clear','0','00','.','Done'].map((k) => (
+                                <button key={k} onClick={() => k === 'Done' ? setActiveField(null) : k === 'Delete' ? keyPress('back') : k === 'Clear' ? keyPress('clear') : keyPress(k)} className={`h-14 rounded-2xl font-black text-lg flex items-center justify-center shadow-sm active:scale-95 transition-transform ${k === 'Done' ? 'bg-emerald-500 text-white' : 'bg-white text-slate-800 hover:bg-slate-50'}`}>
+                                    {k === 'Delete' ? <Icon name="Delete" /> : k === 'Done' ? <Icon name="Check" /> : k}
+                                </button>
+                            ))}
                         </div>
                     </div>
-                `;
-            });
 
-            // 詳細表生成
-            const dHead = document.getElementById('detail-header');
-            const dBody = document.getElementById('detail-body');
-            dHead.innerHTML = '<th>半荘</th>';
-            s.players.forEach(p => dHead.innerHTML += `<th>${p.name}</th>`);
+                    {showNewSetModal && (
+                        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-6 animate-in">
+                            <div className="bg-white w-full rounded-[40px] p-8 space-y-6 shadow-2xl overflow-hidden relative">
+                                <h3 className="text-xl font-black text-center italic uppercase tracking-widest relative z-10">新規セッション</h3>
+                                <p className="text-[10px] text-center text-slate-400 font-bold -mt-4">対局メンバーを選択（3〜4名）</p>
+                                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto no-scrollbar relative z-10 p-1">
+                                    {db.members.map(m => (
+                                        <button key={m.id} onClick={() => setModalSetup(prev => ({...prev, selectedIds: prev.selectedIds.includes(m.id) ? prev.selectedIds.filter(id => id !== m.id) : [...prev.selectedIds, m.id]}))} className={`p-4 rounded-2xl text-xs font-black border-2 transition-all ${modalSetup.selectedIds.includes(m.id) ? 'bg-emerald-500 border-emerald-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>{m.name}</button>
+                                    ))}
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 relative z-10">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-300 uppercase">レート (点/円)</label>
+                                        <input type="number" value={modalSetup.rate} onChange={e => setModalSetup({...modalSetup, rate: Number(e.target.value)})} className="w-full bg-slate-50 p-3 rounded-xl text-sm font-black outline-none border-2 border-transparent focus:border-emerald-500" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-300 uppercase">チップ (1枚/円)</label>
+                                        <input type="number" value={modalSetup.chipRate} onChange={e => setModalSetup({...modalSetup, chipRate: Number(e.target.value)})} className="w-full bg-slate-50 p-3 rounded-xl text-sm font-black outline-none border-2 border-transparent focus:border-emerald-500" />
+                                    </div>
+                                </div>
+                                <button onClick={() => {
+                                    const selected = db.members.filter(m => modalSetup.selectedIds.includes(m.id));
+                                    if(selected.length < 3) return;
+                                    setDb({...db, currentSet: { date: new Date().toISOString(), rate: modalSetup.rate, chipRate: modalSetup.chipRate, players: selected.map(m => ({ name: m.name, scores: [0], chip: 0, fee: 0 })) }});
+                                    setShowNewSetModal(false);
+                                    setActiveTab('input');
+                                }} className="w-full py-5 bg-emerald-500 text-white rounded-[24px] font-black italic shadow-lg shadow-emerald-200 active:scale-95 transition-transform relative z-10">対局スタート</button>
+                                <button onClick={() => setShowNewSetModal(false)} className="w-full text-slate-300 text-[10px] font-black uppercase tracking-widest relative z-10">キャンセル</button>
+                            </div>
+                        </div>
+                    )}
 
-            dBody.innerHTML = '';
-            const rounds = s.players[0].scores.length;
-            for(let r=0; r<rounds; r++) {
-                let tr = `<td>${r+1}半荘</td>`;
-                s.players.forEach(p => {
-                    const sc = p.scores[r];
-                    tr += `<td class="${sc>=0?'pos-val':'neg-val'}">${sc>0?'+':''}${sc}</td>`;
-                });
-                dBody.innerHTML += `<tr>${tr}</tr>`;
-            }
+                    {showJsonEditor && (
+                        <div className="fixed inset-0 bg-black/80 z-[100] p-6 flex flex-col animate-in">
+                            <div className="bg-white flex-1 rounded-[32px] p-6 flex flex-col space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-black italic uppercase text-sm">JSON データ編集</h3>
+                                    <button onClick={() => setShowJsonEditor(false)} className="p-2"><Icon name="X" /></button>
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-bold">テキストを書き換えると全データが更新されます。</p>
+                                <textarea value={jsonInput} onChange={e => setJsonInput(e.target.value)} className="flex-1 bg-slate-50 border rounded-2xl p-4 font-mono text-[10px] outline-none focus:ring-2 ring-emerald-500 no-scrollbar"></textarea>
+                                <div className="flex gap-2">
+                                    <button onClick={() => { copyJsonToClipboard(); alert("コピーしました"); }} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase">コピー</button>
+                                    <button onClick={() => { try { setDb(JSON.parse(jsonInput)); setShowJsonEditor(false); } catch(e) { } }} className="flex-[2] py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs shadow-lg uppercase">データを保存</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
 
-            // 合計と平均順位
-            let totalRow = '<td style="background:#f8fafc">合計</td>';
-            let avgRow = '<td style="background:#f8fafc">順位平均</td>';
-            s.players.forEach(p => {
-                const sum = p.scores.reduce((a,b)=>a+b,0);
-                totalRow += `<td class="${sum>=0?'pos-val':'neg-val'}">${sum>0?'+':''}${sum.toFixed(1)}</td>`;
-
-                let rSum = 0;
-                for(let r=0; r<rounds; r++) {
-                    const scs = s.players.map(pl => pl.scores[r]).sort((a,b)=>b-a);
-                    rSum += scs.indexOf(p.scores[r]) + 1;
-                }
-                avgRow += `<td>${(rSum/rounds).toFixed(2)}位</td>`;
-            });
-            dBody.innerHTML += `<tr style="background:#f8fafc; border-top:2px solid #e2e8f0;">${totalRow}</tr>`;
-            dBody.innerHTML += `<tr style="background:#f8fafc;">${avgRow}</tr>`;
-
-            // 画像化
-            setTimeout(async () => {
-                try {
-                    const canvas = await html2canvas(document.getElementById('share-card-container'), { scale: 2 });
-                    const dataUrl = canvas.toDataURL("image/png");
-                    const newTab = window.open();
-                    newTab.document.write(`<body style="margin:0; background:#f1f5f9; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:sans-serif; padding:20px;"><div style="text-align:center;"><img src="${dataUrl}" style="max-width:100%; height:auto; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); border-radius: 12px; margin-bottom:20px;"><p style="color:#64748b; font-size:14px; font-weight:bold;">画像を長押しして保存してください</p></div></body>`);
-                } catch (e) { console.error(e); alert("画像生成エラー"); }
-            }, 100);
-        },
-
-        saveCurrentSet() {
-            if(confirm("対局を保存しますか？")) {
-                const s = this.db.currentSet;
-                s.players.forEach(p => {
-                    const pts = p.scores.reduce((a,b)=>a+b,0);
-                    p.settlement = (pts * s.rate) + ((p.chip||0) * s.chipRate) - (s.fee / s.playerCount);
-                });
-                this.db.history.unshift(JSON.parse(JSON.stringify(s)));
-                this.db.currentSet = null; this.save(); this.setTab('history');
-            }
-        },
-
-        renderHistory() {
-            const l = document.getElementById('history-list');
-            l.innerHTML = '';
-            if (this.db.history.length === 0) {
-                l.innerHTML = '<div class="text-center py-20 text-slate-300 font-bold italic">履歴がありません</div>';
-                return;
-            }
-            this.db.history.forEach((h, i) => {
-                let ps = '';
-                h.players.forEach(p => {
-                    ps += `<div class="flex justify-between text-[10px]"><span>${p.name}</span><span class="font-bold ${p.settlement<0?'neg-val':'pos-val'}">${Math.round(p.settlement).toLocaleString()}円</span></div>`;
-                });
-
-                const div = document.createElement('div');
-                div.className = "bg-white p-4 rounded-2xl border shadow-sm active:scale-95 transition-all relative cursor-pointer";
-                div.onclick = () => {
-                    this.viewingRecord = JSON.parse(JSON.stringify(this.db.history[i]));
-                    this.setTab('input');
-                };
-
-                div.innerHTML = `
-                    <div class="flex justify-between items-center border-b mb-2 pb-1 text-[9px] text-slate-300 font-black italic">
-                        <span>${new Date(h.date).toLocaleString()} (精算額)</span>
-                        <button onclick="event.stopPropagation(); app.delHistory(${i})" class="p-1 hover:bg-red-50 rounded">
-                            <i data-lucide="trash-2" class="w-3 h-3 text-slate-200 hover:text-red-400"></i>
-                        </button>
-                    </div>
-                    ${ps}
-                `;
-                l.appendChild(div);
-            });
-            lucide.createIcons();
-        },
-
-        runAnalysis() {
-            const results = document.getElementById('analysis-results');
-            if (this.selectedAnalysisMembers.length === 0) { results.innerHTML = `<div class="py-20 text-center text-slate-300 font-bold italic">メンバーを選択して分析開始</div>`; return; }
-            results.innerHTML = `<h3 class="font-black text-sm italic text-slate-400 uppercase tracking-widest">直接対局データ</h3>`;
-            this.selectedAnalysisMembers.forEach(target => {
-                const stats = {};
-                this.db.history.forEach(h => {
-                    const pT = h.players.find(p => p.name === target);
-                    if (!pT) return;
-                    h.players.forEach(opp => {
-                        if (opp.name === target || !this.selectedAnalysisMembers.includes(opp.name)) return;
-                        if (!stats[opp.name]) stats[opp.name] = { games: 0, win: 0, diff: 0 };
-                        stats[opp.name].games += pT.scores.length;
-                        const tInc = (pT.scores.reduce((a,b)=>a+b,0) * h.rate) + ((pT.chip||0) * h.chipRate);
-                        const oInc = (opp.scores.reduce((a,b)=>a+b,0) * h.rate) + ((opp.chip||0) * h.chipRate);
-                        stats[opp.name].diff += (tInc - oInc);
-                        pT.scores.forEach((ts, idx) => { if (ts > opp.scores[idx]) stats[opp.name].win++; });
-                    });
-                });
-                if (Object.keys(stats).length > 0) {
-                    let html = `<div class="mb-6"><div class="text-[10px] font-black text-emerald-600 italic bg-emerald-50 px-2 py-1 rounded inline-block">${target} の戦績</div>`;
-                    Object.entries(stats).forEach(([name, data]) => {
-                        html += `<div class="bg-white p-3 rounded-xl border mt-2 flex justify-between items-center">
-                            <div><div class="font-bold">${name} 相手</div><div class="text-[9px] text-slate-400 font-bold">${data.games}局</div></div>
-                            <div class="text-right font-black ${data.diff >= 0 ? 'pos-val' : 'neg-val'}">${Math.round(data.diff).toLocaleString()}円</div>
-                        </div>`;
-                    });
-                    results.innerHTML += html + `</div>`;
-                }
-            });
-        },
-
-        renderAnalysisInit() {
-            const container = document.getElementById('analysis-chips'); container.innerHTML = '';
-            this.db.members.forEach(m => {
-                const isSel = this.selectedAnalysisMembers.includes(m.name);
-                const btn = document.createElement('button');
-                btn.className = `px-4 py-2 rounded-full border text-xs font-bold transition-all ${isSel ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600'}`;
-                btn.innerText = m.name; btn.onclick = () => {
-                    if (isSel) this.selectedAnalysisMembers = this.selectedAnalysisMembers.filter(n => n !== m.name);
-                    else if (this.selectedAnalysisMembers.length < 4) this.selectedAnalysisMembers.push(m.name);
-                    this.renderAnalysisInit(); this.runAnalysis();
-                };
-                container.appendChild(btn);
-            });
-        },
-
-        startSet() {
-            const sel = Array.from(document.querySelectorAll('.member-sel.selected')).map(s => ({ name: s.innerText, scores: [0], chip: 0 }));
-            if (sel.length < 3) return alert("3人以上選択してください");
-            this.db.currentSet = { date: new Date().toISOString(), playerCount: sel.length, rate: parseInt(document.getElementById('setup-rate').value)||50, chipRate: parseInt(document.getElementById('setup-chip-rate').value)||100, players: sel, fee: 0 };
-            this.save(); this.closeModal('modal-new-set'); this.setTab('input');
-        },
-        keyPress(k) {
-            let v = this.currentValue;
-            if (k === 'back') v = v.length > 1 ? v.slice(0, -1) : "0";
-            else if (k === 'clear') v = "0";
-            else if (k === '-') v = v.startsWith('-') ? v.slice(1) : (v === "0" ? "-" : "-" + v);
-            else if (k === '.') { if(!v.includes('.')) v += '.'; }
-            else v = (v === "0") ? k : v + k;
-            this.currentValue = v; document.getElementById('keypad-preview').innerText = v; this.applyValue(v);
-        },
-        closeKeypad() { document.getElementById('custom-keypad').classList.remove('open'); document.querySelectorAll('.score-input-cell').forEach(el => el.classList.remove('active')); },
-        addRow() { if(this.db.currentSet) { this.db.currentSet.players.forEach(p => p.scores.push(0)); this.renderInputTable(); this.save(); } },
-        showNewSetModal() { this.refreshMemberSelectUI(); this.openModal('modal-new-set'); },
-        refreshMemberSelectUI() {
-            const g = document.getElementById('member-select-grid'); g.innerHTML = '';
-            this.db.members.forEach(m => {
-                const b = document.createElement('button'); b.className = 'member-sel border p-3 rounded-xl text-xs font-bold bg-slate-50';
-                b.innerText = m.name; b.onclick = () => b.classList.toggle('selected'); g.appendChild(b);
-            });
-        },
-        openModal(id) { document.getElementById(id).classList.remove('hidden'); },
-        closeModal(id) { document.getElementById(id).classList.add('hidden'); },
-        renderMembers() {
-            const l = document.getElementById('member-list'); l.innerHTML = '';
-            this.db.members.forEach(m => {
-                l.innerHTML += `<div class="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm"><span class="font-black italic">${m.name}</span><button onclick="app.delMember(${m.id})" class="text-slate-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
-            });
-            lucide.createIcons();
-        },
-        addMemberPrompt() {
-            const n = prompt("名前を入力"); if(n && n.trim()) { this.db.members.push({id:Date.now(), name:n.trim()}); this.save(); this.renderMembers(); }
-        },
-        delMember(id) {
-            if(confirm("削除しますか？")) { this.db.members = this.db.members.filter(m=>m.id!==id); this.save(); this.renderMembers(); }
-        },
-        delHistory(i) { if(confirm("削除しますか？")) { this.db.history.splice(i,1); this.save(); this.renderHistory(); } },
-        exportData() { const s = JSON.stringify(this.db); const el = document.createElement('textarea'); el.value = s; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert("コピーしました"); },
-        importData() { const s = prompt("データを貼り付け"); if(s) { try { this.db = JSON.parse(s); this.save(); location.reload(); } catch(e) { alert("形式エラー"); } } },
-        closeViewRecord() {
-            this.viewingRecord = null;
-            this.setTab('history');
-        }
-    };
-    window.onload = () => app.init();
-</script>
-```
-
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
